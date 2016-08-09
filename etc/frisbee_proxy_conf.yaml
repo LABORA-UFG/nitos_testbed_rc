@@ -1,5 +1,6 @@
 #xmpp details
-:xmpp:
+:pubsub:
+  :protocol: xmpp
   :username: frisbee_proxy
   :password: pw
   :server: testserver

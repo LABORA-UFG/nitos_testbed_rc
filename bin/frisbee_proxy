@@ -12,7 +12,7 @@ $stdout.sync = true
 @config = YAML.load_file('/etc/nitos_testbed_rc/frisbee_proxy_conf.yaml')
 # @config = YAML.load_file(File.join(File.dirname(File.expand_path(__FILE__)), '.../etc/frisbee_proxy_conf.yaml'))
 @auth = @config[:auth]
-@xmpp = @config[:xmpp]
+@pubsub = @config[:pubsub]
 
 require 'nitos_testbed_rc/frisbee'
 require 'nitos_testbed_rc/frisbeed'
@@ -28,7 +28,7 @@ trusted_roots = File.expand_path(@auth[:root_cert_dir])
 
 opts = {
   communication: {
-    url:  "xmpp://#{@xmpp[:username]}:#{@xmpp[:password]}@#{@xmpp[:server]}",
+    url:  "#{@pubsub[:protocol]}://#{@pubsub[:username]}:#{@pubsub[:password]}@#{@pubsub[:server]}",
     auth: {
       authenticate: true,
       pdp: {
@@ -225,12 +225,12 @@ class FrisbeePDP
   end
 end
 
-OmfCommon.init(@config[:operationMode], opts) do |el|#communication: { url: "xmpp://#{@xmpp[:proxy_user]}:#{@xmpp[:password]}@#{@xmpp[:server]}", auth: {} }) do
+OmfCommon.init(@config[:operationMode], opts) do |el|#communication: { url: "#{@pubsub[:protocol]}://#{@pubsub[:proxy_user]}:#{@pubsub[:password]}@#{@pubsub[:server]}", auth: {} }) do
   OmfCommon.comm.on_connected do |comm|
     OmfCommon::Auth::CertificateStore.instance.register_default_certs(trusted_roots)
     frisbee_entity.resource_id = OmfCommon.comm.local_topic.address
     OmfCommon::Auth::CertificateStore.instance.register(frisbee_entity)
-    info "Frisbee Factory >> Connected to XMPP server"
+    info "Frisbee Factory >> Connected to #{@pubsub[:protocol].upcase} server"
 
     frisbeeFact = OmfRc::ResourceFactory.create(:frisbee_factory, { uid: 'frisbee_factory', certificate: frisbee_entity })
 

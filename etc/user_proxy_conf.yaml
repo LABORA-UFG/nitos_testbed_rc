@@ -1,5 +1,6 @@
-#xmpp details
-:xmpp:
+#pubsub details
+:pubsub:
+  :protocol: xmpp
   :username: user_proxy
   :password: pw
   :server: testserver

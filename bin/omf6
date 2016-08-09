@@ -16,7 +16,7 @@ conf_file = ERB.new(conf_file, nil).result(binding)
 @config = YAML.load(conf_file)
 # @config = YAML.load_file(File.join(File.dirname(File.expand_path(__FILE__)), '.../etc/omf_script_conf.yaml'))
 @auth = @config[:auth]
-@xmpp = @config[:xmpp]
+@pubsub = @config[:pubsub]
 @omf = @config[:omf_script]
 
 @fconfig = YAML.load_file(File.expand_path(FRISB_PATH))
@@ -744,7 +744,7 @@ end
 opt_parser.parse!
 
 def tell_complete_msg(command, nodes_ok, nodes_failed)
-  puts "\nINFO: Domain: #{@xmpp[:server]} - Command: #{command}"
+  puts "\nINFO: Domain: #{@pubsub[:server]} - Command: #{command}"
   puts "INFO: -----------------------------------------------"
   nodes_ok.each do |n|
     puts "INFO: Node #{n} \tReply: OK"
@@ -801,7 +801,7 @@ def shut_down(comm)
   comm.disconnect
 end
 
-OmfCommon.init(@config[:operationMode], {communication: { url: "xmpp://#{@xmpp[:script_user]}:#{@xmpp[:password]}@#{@xmpp[:server]}", auth: {}}, logging: nil }) do
+OmfCommon.init(@config[:operationMode], {communication: { url: "#{@pubsub[:protocol]}://#{@pubsub[:script_user]}:#{@pubsub[:password]}@#{@pubsub[:server]}", auth: {}}, logging: nil }) do
   OmfCommon.comm.on_connected do |comm|
     OmfCommon::Auth::CertificateStore.instance.register_default_certs(trusted_roots)
     entity.resource_id = OmfCommon.comm.local_topic.address

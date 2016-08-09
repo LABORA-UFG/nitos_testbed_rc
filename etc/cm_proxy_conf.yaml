@@ -1,5 +1,6 @@
 #details to be used for the connection to the xmpp server
-:xmpp:
+:pubsub:
+  :protocol: xmpp
   :username: cm_proxy
   :password: pw
   :server: testserver

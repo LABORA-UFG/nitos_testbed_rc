@@ -13,7 +13,7 @@ $stdout.sync = true
 @config = YAML.load_file('/etc/nitos_testbed_rc/cm_proxy_conf.yaml')
 # @config = YAML.load_file(File.join(File.dirname(File.expand_path(__FILE__)), '../etc/cm_proxy_conf.yaml'))
 @auth = @config[:auth]
-@xmpp = @config[:xmpp]
+@pubsub = @config[:pubsub]
 
 require 'nitos_testbed_rc/cm_factory'
 
@@ -25,7 +25,7 @@ trusted_roots = File.expand_path(@auth[:root_cert_dir])
 
 opts = {
   communication: {
-    url:  "xmpp://#{@xmpp[:username]}:#{@xmpp[:password]}@#{@xmpp[:server]}",
+    url:  "#{@pubsub[:protocol]}://#{@pubsub[:username]}:#{@pubsub[:password]}@#{@pubsub[:server]}",
     auth: {
       authenticate: true,
       pdp: {
@@ -226,7 +226,7 @@ OmfCommon.init(@config[:operationMode], opts) do |el|#communication: { url: "xmp
     cm_entity.resource_id = OmfCommon.comm.local_topic.address
     OmfCommon::Auth::CertificateStore.instance.register(cm_entity)
 
-    info "CM Factory >> Connected to XMPP server"
+    info "CM Factory >> Connected to #{@pubsub[:protocol].upcase} server"
     cmFact = OmfRc::ResourceFactory.create(:cm_factory, { uid: 'cm_factory', certificate: cm_entity })
 
     comm.on_interrupted {

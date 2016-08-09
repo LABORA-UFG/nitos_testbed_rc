@@ -42,8 +42,8 @@ module OmfRc::ResourceProxy::User
       debug "Could not parse YAML: #{e.message}"
     end
 
-    opts[:xmpp][:script_user] = res.property.username
-    opts[:xmpp][:server] = res.topics.first.address.split('@').last
+    opts[:pubsub][:script_user] = res.property.username
+    opts[:pubsub][:server] = res.topics.first.address.split('@').last
 
     File.open("#{path}/omf_script_conf.yaml", "w") {|f| f.write(opts.to_yaml) }
 
