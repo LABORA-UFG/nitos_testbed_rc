@@ -1,5 +1,5 @@
 :pubsub:
-  :protocol: xmpp
+  :protocol: amqp
   :script_user: script_user
   :password: pw
   :server: <%= Socket.gethostname %>.inf.uth.gr

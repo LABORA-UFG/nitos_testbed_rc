@@ -1,6 +1,6 @@
-#details to be used for the connection to the xmpp server
+#details to be used for the connection to the pubsub server
 :pubsub:
-  :protocol: xmpp
+  :protocol: amqp
   :username: cm_proxy
   :password: pw
   :server: testserver
@@ -22,7 +22,7 @@
 #operation mode for OmfCommon.init (development, production, etc)
 :operationMode: development
 
-#testbed xmpp topic
+#testbed pubsub topic
 :testbedTopic: am_controller
 
 #testbed domain (resources with other domains will be ignored unless if this has the value 'ALL')

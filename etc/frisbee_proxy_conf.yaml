@@ -1,6 +1,6 @@
-#xmpp details
+#pubsub details
 :pubsub:
-  :protocol: xmpp
+  :protocol: amqp
   :username: frisbee_proxy
   :password: pw
   :server: testserver
@@ -16,7 +16,7 @@
 #operation Mode for OmfCommon.init (development, production, etc)
 :operationMode: development
 
-#testbed xmpp topic
+#testbed pubsub topic
 :testbedTopic: am_controller
 
 #testbed domain (resources with other domains will be ignored unless if this has the value 'ALL')
