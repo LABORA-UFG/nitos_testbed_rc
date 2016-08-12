@@ -29,9 +29,10 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
 
   hook :after_initial_configured do |client|
     Thread.new do
+      sleep 1
       debug "Received message '#{client.opts.inspect}'"
       if error_msg = client.opts.error_msg
-        res.inform(:error,{
+        client.inform(:error,{
           event_type: "AUTH",
           exit_code: "-1",
           node_name: client.property.node_topic,
@@ -61,31 +62,37 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
       debug "Executing command #{command} on host #{client.property.multicast_interface.to_s}"
       
       output = ''
+      retry_flag = 0
       host = Net::Telnet.new("Host" => client.property.multicast_interface.to_s, "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
-      host.cmd(command.to_s) do |c|
-        if c[0,8] ==  "Progress"
-          c = c.split[1]
-          client.inform(:status, {
-            status_type: 'FRISBEE',
-            event: "STDOUT",
-            app: client.property.app_id,
-            node: client.property.node_topic,
-            msg: "#{c.to_s}"
-          }, :ALL)
-        elsif c[0,5] == "Wrote"
-          c = c.split("\n")
-          output = "#{c.first}\n#{c.last}"
-        elsif c[0,6] == "\nWrote"
-          c = c.split("\n")
-          output = "#{c[1]}\n#{c.last}"
-        elsif c.strip == "Short write!"
-          res.inform(:error,{
-            event_type: "ERROR",
-            exit_code: "-1",
-            node_name: client.property.node_topic,
-            msg: "Load ended with 'Short write' error msg!"
-          }, :ALL)
+      while retry_flag < 2
+        host.cmd(command.to_s) do |c|
+          puts "$ #{c}"
+          if c[0,8] ==  "Progress"
+            c = c.split[1]
+            client.inform(:status, {
+              status_type: 'FRISBEE',
+              event: "STDOUT",
+              app: client.property.app_id,
+              node: client.property.node_topic,
+              msg: "#{c.to_s}"
+            }, :ALL)
+          elsif c[0,5] == "Wrote"
+            c = c.split("\n")
+            output = "#{c.first}\n#{c.last}"
+          elsif c[0,6] == "\nWrote"
+            c = c.split("\n")
+            output = "#{c[1]}\n#{c.last}"
+          elsif c.strip == "Short write!"
+            client.inform(:error,{
+              event_type: "ERROR",
+              exit_code: "-1",
+              node_name: client.property.node_topic,
+              msg: "Load ended with 'Short write' error msg!"
+            }, :ALL)
+          end
         end
+        break if output != ''
+        retry_flag += 1
       end
 
       client.inform(:status, {
@@ -97,5 +104,64 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
       }, :ALL)
       host.close
     end
+    # client.execute_frisbee
+  end
+
+  work('execute_frisbee') do |client|
+    debug "Received message '#{client.opts.inspect}'"
+    sleep 1
+    if error_msg = client.opts.error_msg
+      client.inform(:error,{
+        event_type: "AUTH",
+        exit_code: "-1",
+        node_name: client.property.node_topic,
+        msg: error_msg
+      }, :ALL)
+      next
+    end
+
+    nod = client.opts.node
+    client.property.multicast_interface = nod[:node_ip]
+    client.property.app_id = client.hrn.nil? ? client.uid : client.hrn
+
+    command = "#{client.property.binary_path} -i #{client.property.multicast_interface} -m #{client.property.multicast_address} -p #{client.property.port} #{client.property.hardrive}"
+    debug "Executing command #{command} on host #{client.property.multicast_interface.to_s}"
+    
+    output = ''
+    host = Net::Telnet.new("Host" => client.property.multicast_interface.to_s, "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
+    host.cmd(command.to_s) do |c|
+      if c[0,8] ==  "Progress"
+        c = c.split[1]
+        client.inform(:status, {
+          status_type: 'FRISBEE',
+          event: "STDOUT",
+          app: client.property.app_id,
+          node: client.property.node_topic,
+          msg: "#{c.to_s}"
+        }, :ALL)
+      elsif c[0,5] == "Wrote"
+        c = c.split("\n")
+        output = "#{c.first}\n#{c.last}"
+      elsif c[0,6] == "\nWrote"
+        c = c.split("\n")
+        output = "#{c[1]}\n#{c.last}"
+      elsif c.strip == "Short write!"
+        client.inform(:error,{
+          event_type: "ERROR",
+          exit_code: "-1",
+          node_name: client.property.node_topic,
+          msg: "Load ended with 'Short write' error msg!"
+        }, :ALL)
+      end
+    end
+
+    client.inform(:status, {
+      status_type: 'FRISBEE',
+      event: "EXIT",
+      app: client.property.app_id,
+      node: client.property.node_topic,
+      msg: output
+    }, :ALL)
+    host.close
   end
 end

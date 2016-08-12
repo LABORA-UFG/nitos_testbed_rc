@@ -41,22 +41,28 @@ module OmfRc::ResourceProxy::Frisbeed
     server.property.image = server.property.image.start_with?('/') ? server.property.image : @fconf[:imageDir] + '/' + server.property.image
     unless File.file?(server.property.image)
       debug "File '#{server.property.image}' does not exist."
-      res.inform(:error, {
-        event_type: 'ERROR',
-        exit_code: -1,
-        msg: "File '#{server.property.image}' does not exist."
-      }, :ALL)
+      Thread.new do
+        sleep 1
+        server.inform(:error, {
+          event_type: 'ERROR',
+          exit_code: -1,
+          msg: "File '#{server.property.image}' does not exist."
+        }, :ALL)
+      end
+      next
     end
     debug "Frisbee server is loading image: #{server.property.image}"
 
-    @app = ExecApp.new(server.property.app_id, server.build_command_line, server.property.map_err_to_out) do |event_type, app_id, msg|
+    @app = {} if @app.nil?
+
+    @app[server.uid] = ExecApp.new(server.property.app_id, server.build_command_line, server.property.map_err_to_out) do |event_type, app_id, msg|
       server.process_event(server, event_type, app_id, msg)
     end
   end
 
   hook :before_release do |server|
     begin
-      @app.signal(signal = 'KILL')
+      @app[server.uid].signal(signal = 'KILL') unless @app.nil?
     rescue Exception => e
       raise e unless e.message == "No such process"
     ensure

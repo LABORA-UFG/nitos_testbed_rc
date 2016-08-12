@@ -63,12 +63,13 @@ def create_frisbeed(comm, fcontroller, port, options)
       server.on_subscribed do
         server.on_message do |m|
           if m.operation == :inform
-            if m.read_content("event") == "STDOUT"
-              puts "INFO: #{m.read_content("msg")}"
-            elsif m.read_content("event") == "EXIT"
-              puts "INFO: #{m.read_content("msg")}"
-            elsif m.read_content("event") == "ERROR"
-              puts "ERROR: #{m.read_content("msg")}"
+            if m.read_content("itype") == "STDOUT"
+              puts "INFO: #{m.read_property("msg")}"
+            elsif m.read_content("itype") == "EXIT"
+              puts "INFO: #{m.read_property("msg")}"
+            elsif m.read_content("itype") == "ERROR"
+              puts "ERROR: #{m.read_property("msg")}"
+              stop_loading(comm)
             end
           end
         end
@@ -81,7 +82,7 @@ def create_frisbeed(comm, fcontroller, port, options)
 end
 
 #run frisbee client on a node
-def create_frisbee(comm, fcontroller, node, port, options, progress_bar)
+def create_frisbee(comm, fcontroller, cm_controller, node, port, options, progress_bar)
   fcontroller.create(:frisbee, hrn: 'frisbee client', port: port, node_topic: "#{node.to_s}") do |reply_msg|
     if reply_msg.success?
       client = reply_msg.resource
@@ -110,75 +111,74 @@ def create_frisbee(comm, fcontroller, node, port, options, progress_bar)
               else
                 puts "ERROR: Frisbee client stopped unexpectedly with no error message."
               end
-              comm.subscribe('cm_factory') do |controller|
-                controller.on_message do |cm_msg|
-                  if cm_msg.operation == :inform
-                    case cm_msg.read_content("itype")
-                    when 'STATUS'
-                      unless cm_msg.read_property("current").nil? || cm_msg.read_property("desired").nil?
-                        if cm_msg.read_property("current").to_sym == :pxe_off && cm_msg.read_property("desired").to_sym == :pxe_off
-                          n = cm_msg.read_property("node")
-                          @nodes_up_without_pxe << n
-                          if @nodes_up_pxe.length == (@nodes_up_without_pxe.length + @nodes_failed_without_pxe.length)
-                            # puts "INFO: Load proccess completed."
-                            # fcontroller.release(@@server) do |reply_msg|
-                            #   shut_down(comm)
-                            # end
-                            stop_loading(comm, fcontroller)
-                          end
+
+              cm_controller.on_message do |cm_msg|
+                if cm_msg.operation == :inform
+                  case cm_msg.read_content("itype")
+                  when 'STATUS'
+                    unless cm_msg.read_property("current").nil? || cm_msg.read_property("desired").nil?
+                      if cm_msg.read_property("current").to_sym == :pxe_off && cm_msg.read_property("desired").to_sym == :pxe_off
+                        n = cm_msg.read_property("node")
+                        @nodes_up_without_pxe << n
+                        if @nodes_up_pxe.length == (@nodes_up_without_pxe.length + @nodes_failed_without_pxe.length)
+                          # puts "INFO: Load proccess completed."
+                          # fcontroller.release(@@server) do |reply_msg|
+                          #   shut_down(comm)
+                          # end
+                          stop_loading(comm)
                         end
                       end
-                    when 'ERROR'
-                      case cm_msg.read_property("event_type")
-                      when "AUTH"
-                        puts "ERROR AUTH: #{cm_msg.read_property("msg")}"
-                        n = cm_msg.read_property("node_name")
-                        @nodes_failed_without_pxe << n
-                        if (@nodes_up_without_pxe.length + @nodes_failed_without_pxe.length) == options[:target_nodes].length
-                          stop_loading(comm, fcontroller)
-                        end
-                      when "HTTP"
-                        puts "ERROR HTTP: #{cm_msg.read_property("msg")}"
-                        n = cm_msg.read_property("node_name")
-                        if @nodes_retrying_without_pxe.include?(n)
-                          @nodes_retrying_without_pxe.delete(n)
-                          @nodes_failed_without_pxe << n
-                          if (@nodes_up_without_pxe.length + @nodes_failed_without_pxe.length) == options[:target_nodes].length
-                            stop_loading(comm)
-                          end
-                        else
-                          @nodes_retrying_without_pxe << n
-                          controller.configure(state: {node: n.to_sym, status: :start_on_pxe})
-                        end
-                      when "TIME_OUT"
-                        puts "ERROR TIME_OUT: #{cm_msg.read_property("msg")}"
-                        n = cm_msg.read_property("node_name")
+                    end
+                  when 'ERROR'
+                    case cm_msg.read_property("event_type")
+                    when "AUTH"
+                      puts "ERROR AUTH: #{cm_msg.read_property("msg")}"
+                      n = cm_msg.read_property("node_name")
+                      @nodes_failed_without_pxe << n
+                      if (@nodes_up_without_pxe.length + @nodes_failed_without_pxe.length) == options[:target_nodes].length
+                        stop_loading(comm)
+                      end
+                    when "HTTP"
+                      puts "ERROR HTTP: #{cm_msg.read_property("msg")}"
+                      n = cm_msg.read_property("node_name")
+                      if @nodes_retrying_without_pxe.include?(n)
+                        @nodes_retrying_without_pxe.delete(n)
                         @nodes_failed_without_pxe << n
                         if (@nodes_up_without_pxe.length + @nodes_failed_without_pxe.length) == options[:target_nodes].length
                           stop_loading(comm)
                         end
                       else
-                        error cm_msg.read_content('reason') if cm_msg.read_content("reason")
+                        @nodes_retrying_without_pxe << n
+                        controller.configure(state: {node: n.to_sym, status: :start_on_pxe})
                       end
-                    when 'WARN'
-                      warn cm_msg.read_content('reason') if cm_msg.read_content("reason")
+                    when "TIME_OUT"
+                      puts "ERROR TIME_OUT: #{cm_msg.read_property("msg")}"
+                      n = cm_msg.read_property("node_name")
+                      @nodes_failed_without_pxe << n
+                      if (@nodes_up_without_pxe.length + @nodes_failed_without_pxe.length) == options[:target_nodes].length
+                        stop_loading(comm)
+                      end
+                    else
+                      error cm_msg.read_content('reason') if cm_msg.read_content("reason")
                     end
+                  when 'WARN'
+                    warn cm_msg.read_content('reason') if cm_msg.read_content("reason")
                   end
                 end
-                unless options[:wait]
-                  controller.configure(state: {node: node.to_sym, status: options[:last_action].to_sym, wait: options[:wait]})
-                  @nodes_reset += 1
-                  if @nodes_reset == @nodes_up_pxe.length
-                    @load_end_msg.split("\n").each {|line| puts "INFO: #{line}"}
-                    stop_loading(comm)
-                  end
-                else
-                  puts "INFO: Trying to #{options[:last_action]} node '#{client_msg.read_property("node")}' out of PXE."
-                  controller.configure(state: {node: node.to_sym, status: :start_without_pxe, last_action: options[:last_action]})
-                  @nodes_reset += 1
-                   if @nodes_reset == @nodes_up_pxe.length
-                    @load_end_msg.split("\n").each {|line| puts "INFO: #{line}"}
-                  end
+              end
+              unless options[:wait]
+                cm_controller.configure(state: {node: node.to_sym, status: options[:last_action].to_sym, wait: options[:wait]})
+                @nodes_reset += 1
+                if @nodes_reset == @nodes_up_pxe.length
+                  @load_end_msg.split("\n").each {|line| puts "INFO: #{line}"}
+                  stop_loading(comm)
+                end
+              else
+                puts "INFO: Trying to #{options[:last_action]} node '#{client_msg.read_property("node")}' out of PXE."
+                cm_controller.configure(state: {node: node.to_sym, status: :start_without_pxe, last_action: options[:last_action]})
+                @nodes_reset += 1
+                 if @nodes_reset == @nodes_up_pxe.length
+                  @load_end_msg.split("\n").each {|line| puts "INFO: #{line}"}
                 end
               end
             end
@@ -209,7 +209,7 @@ def stop_loading(comm)
 end
 
 
-def start_load(comm, options, node)
+def start_load(comm, cm_controller, options, node)
   if @nodes_up_pxe.length == 0
     puts "ERROR: ALL Nodes failled to boot on PXE."
     shut_down(comm)
@@ -231,7 +231,7 @@ def start_load(comm, options, node)
         @nodes_up_pxe.each do |node|
           puts "INFO: Starting Loading Procedure on node '#{node}'"
           @load_complete[node] = 0
-          create_frisbee(comm, @fcontroller, node, port, options, prog_bar) #frisbee client
+          create_frisbee(comm, @fcontroller, cm_controller, node, port, options, prog_bar) #frisbee client
         end
         prog_bar.count = 0
         prog_bar.write
@@ -290,63 +290,72 @@ def load(comm, options)
       @nodes_failed_pxe = []
       nodes_retrying_pxe = []
       port = nil
-      controller.on_message do |m|
-        if m.operation == :inform
-          case m.read_content("itype")
-          when 'STATUS'
-            unless m.read_property("current").nil? && m.read_property("desired").nil?
-              if m.read_property("current").to_sym == :pxe_on && m.read_property("desired").to_sym == :pxe_on
-                n = m.read_property("node_name")
-                @nodes_up_pxe << n
-                print_until_timeout "INFO: Node '#{n}' has booted on PXE."
-                start_load(comm, options, n)
-              else
-                print_until_timeout "ERROR: exit code: #{m.read_content('exit_code')}" if m.read_content('exit_code')
+      controller.create(:cm, hrn: "cm") do |reply_msg|
+        if reply_msg.success?
+          cm_res = reply_msg.resource
+          cm_res.on_subscribed do
+            cm_res.on_message do |m|
+              if options[:target_nodes].include?(m.read_property('node_name')) && m.operation == :inform
+                case m.read_content("itype")
+                when 'STATUS'
+                  unless m.read_property("current").nil? && m.read_property("desired").nil?
+                    if m.read_property("current").to_sym == :pxe_on && m.read_property("desired").to_sym == :pxe_on
+                      n = m.read_property("node_name")
+                      @nodes_up_pxe << n
+                      print_until_timeout "INFO: Node '#{n}' has booted on PXE."
+                      start_load(comm, cm_res, options, n)
+                    else
+                      print_until_timeout "ERROR: exit code: #{m.read_content('exit_code')}" if m.read_content('exit_code')
+                    end
+                  end
+                when 'ERROR'
+                  case m.read_property("event_type")
+                  when "AUTH"
+                    print_until_timeout "ERROR AUTH: #{m.read_property("msg")}"
+                    n = m.read_property("node_name")
+                    @nodes_failed_pxe << n
+                    start_load(comm, cm_res, options, n)
+                  when "HTTP"
+                    print_until_timeout "ERROR HTTP: #{m.read_property("msg")}"
+                    n = m.read_property("node_name")
+                    if nodes_retrying_pxe.include?(n)
+                      nodes_retrying_pxe.delete(n)
+                      @nodes_failed_pxe << n
+                      start_load(comm, cm_res, options, n)
+                    else
+                      nodes_retrying_pxe << n
+                      controller.configure(state: {node: n.to_sym, status: :start_on_pxe})
+                    end
+                  when "TIME_OUT"
+                    print_until_timeout "ERROR TIME_OUT: #{m.read_property("msg")}"
+                    n = m.read_property("node_name")
+                    @nodes_failed_pxe << n
+                    start_load(comm, cm_res, options, n)
+                  else
+                    print_until_timeout "ERROR: #{ m.read_content('reason')}" if m.read_content("reason")
+                  end
+                when 'WARN'
+                  print_until_timeout "WARN: #{ cm_msg.read_content('reason')}" if m.read_content("reason")
+                end
               end
             end
-          when 'ERROR'
-            case m.read_property("event_type")
-            when "AUTH"
-              print_until_timeout "ERROR AUTH: #{m.read_property("msg")}"
-              n = m.read_property("node_name")
-              @nodes_failed_pxe << n
-              start_load(comm, options, n)
-            when "HTTP"
-              print_until_timeout "ERROR HTTP: #{m.read_property("msg")}"
-              n = m.read_property("node_name")
-              if nodes_retrying_pxe.include?(n)
-                nodes_retrying_pxe.delete(n)
-                @nodes_failed_pxe << n
-                start_load(comm, options, n)
-              else
-                nodes_retrying_pxe << n
-                controller.configure(state: {node: n.to_sym, status: :start_on_pxe})
-              end
-            when "TIME_OUT"
-              print_until_timeout "ERROR TIME_OUT: #{m.read_property("msg")}"
-              n = m.read_property("node_name")
-              @nodes_failed_pxe << n
-              start_load(comm, options, n)
-            else
-              print_until_timeout "ERROR: #{ m.read_content('reason')}" if m.read_content("reason")
+            options[:target_nodes].each do |node|
+              cm_res.configure(state: {node: node.to_sym, status: :start_on_pxe})
             end
-          when 'WARN'
-            print_until_timeout "WARN: #{ cm_msg.read_content('reason')}" if m.read_content("reason")
+            puts "INFO: Waiting for target nodes to boot on PXE."
+            @waiting = true
+            @time = 0
+            wait_until_timeout(1){
+              while waiting?
+                sleep 1 # Simulate a task taking an unknown amount of time
+                @time += 1
+              end
+            }
           end
+        else
+          error reply_msg.inspect
         end
       end
-      options[:target_nodes].each do |node|
-        controller.configure(state: {node: node.to_sym, status: :start_on_pxe})
-      end
-      puts "INFO: Waiting for target nodes to boot on PXE."
-      @waiting = true
-      @time = 0
-      wait_until_timeout(1){
-        while waiting?
-          sleep 1 # Simulate a task taking an unknown amount of time
-          @time += 1
-        end
-      }
     else
       error controller.inspect
     end
@@ -410,7 +419,7 @@ def create_imagezip_server(comm, fcontroller, port, options)
 end
 
 #run imagezip client on a node
-def create_imagezip_client(comm, fcontroller, node, port, options)
+def create_imagezip_client(comm, fcontroller, cm_controller, node, port, options)
   fcontroller.create(:imagezip_client, {hrn: 'imagezip client', port: port, node_topic: "#{node.to_s}"}) do |reply_msg|
     if reply_msg.success?
       client = reply_msg.resource
@@ -431,60 +440,61 @@ def create_imagezip_client(comm, fcontroller, node, port, options)
               end
               puts "INFO: Image was saved in '#{@frisbee[:imageDir]}/#{@image}'"
               puts "INFO:"
-              comm.subscribe('cm_factory') do |controller|
-                controller.on_message do |cm_msg|
-                  if cm_msg.operation == :inform
-                    case cm_msg.read_content("itype")
-                    when 'STATUS'
-                      unless cm_msg.read_property("current").nil? && cm_msg.read_property("desired").nil?
-                        if cm_msg.read_property("current").to_sym == :pxe_off && cm_msg.read_property("desired").to_sym == :pxe_off
-                          puts "INFO: Save proccess completed."
-                          fcontroller.release(@@server) do |reply_msg|
-                            shut_down(comm)
-                          end
-                        end
-                      end
-                    when 'ERROR'
-                      case cm_msg.read_property("event_type")
-                      when "AUTH"
-                        puts "ERROR AUTH: #{cm_msg.read_property("msg")}"
+
+              cm_controller.on_message do |cm_msg|
+                if cm_msg.operation == :inform
+                  case cm_msg.read_content("itype")
+                  when 'STATUS'
+                    unless cm_msg.read_property("current").nil? && cm_msg.read_property("desired").nil?
+                      if cm_msg.read_property("current").to_sym == :pxe_off && cm_msg.read_property("desired").to_sym == :pxe_off
+                        puts "INFO: Save proccess completed."
                         fcontroller.release(@@server) do |reply_msg|
                           shut_down(comm)
                         end
-                      when "HTTP"
-                        puts "ERROR HTTP: #{cm_msg.read_property("msg")}"
-                        if @retried
-                          fcontroller.release(@@server) do |reply_msg|
-                            shut_down(comm)
-                          end
-                        else
-                          @retried = true
-                          controller.configure(state: {node: node.to_sym, status: :start_without_pxe, last_action: options[:last_action]})
-                        end
-                      when "TIME_OUT"
-                        puts "ERROR TIME_OUT: #{cm_msg.read_property("msg")}"
+                      end
+                    end
+                  when 'ERROR'
+                    case cm_msg.read_property("event_type")
+                    when "AUTH"
+                      puts "ERROR AUTH: #{cm_msg.read_property("msg")}"
+                      fcontroller.release(@@server) do |reply_msg|
+                        shut_down(comm)
+                      end
+                    when "HTTP"
+                      puts "ERROR HTTP: #{cm_msg.read_property("msg")}"
+                      if @retried
                         fcontroller.release(@@server) do |reply_msg|
                           puts "INFO: #{client_msg.read_property("node")}: #{client_msg.read_property("msg")}"
                           puts "INFO: Image was saved in '#{@frisbee[:imageDir]}/#{@image}'"
                           shut_down(comm)
                         end
                       else
-                        error cm_msg.read_content('reason') if cm_msg.read_content("reason")
+                        @retried = true
+                        cm_controller.configure(state: {node: node.to_sym, status: :start_without_pxe, last_action: options[:last_action]})
                       end
-                    when 'WARN'
-                      warn cm_msg.read_content('reason') if cm_msg.read_content("reason")
+                    when "TIME_OUT"
+                      puts "ERROR TIME_OUT: #{cm_msg.read_property("msg")}"
+                      fcontroller.release(@@server) do |reply_msg|
+                        puts "INFO: #{client_msg.read_property("node")}: #{client_msg.read_property("msg")}"
+                        puts "INFO: Image was saved in '#{@frisbee[:imageDir]}/#{@image}'"
+                        shut_down(comm)
+                      end
+                    else
+                      error cm_msg.read_content('reason') if cm_msg.read_content("reason")
                     end
+                  when 'WARN'
+                    warn cm_msg.read_content('reason') if cm_msg.read_content("reason")
                   end
                 end
-                puts "INFO: Trying to #{options[:last_action]} node '#{client_msg.read_property("node")}' out of PXE."
-                unless options[:wait]
-                  controller.configure(state: {node: node.to_sym, status: options[:last_action].to_sym, wait: options[:wait]})
-                  puts "INFO: Save proccess completed."
-                  shut_down(comm)
-                else
-                  # puts "INFO: Trying to #{options[:last_action]} node '#{client_msg.read_property("node")}' out of PXE."
-                  controller.configure(state: {node: node.to_sym, status: :start_without_pxe, last_action: options[:last_action]})
-                end
+              end
+              puts "INFO: Trying to #{options[:last_action]} node '#{client_msg.read_property("node")}' out of PXE."
+              unless options[:wait]
+                cm_controller.configure(state: {node: node.to_sym, status: options[:last_action].to_sym, wait: options[:wait]})
+                puts "INFO: Save proccess completed."
+                shut_down(comm)
+              else
+                # puts "INFO: Trying to #{options[:last_action]} node '#{client_msg.read_property("node")}' out of PXE."
+                cm_controller.configure(state: {node: node.to_sym, status: :start_without_pxe, last_action: options[:last_action]})
               end
             end
           end
@@ -501,65 +511,75 @@ def save(comm, options)
     @retried = false
     unless controller.error?
       port = nil
-      controller.on_message do |m|
-        if m.operation == :inform
-          case m.read_content("itype")
-          when 'STATUS'
-            unless m.read_property("current").nil? && m.read_property("desired").nil?
-              # logger.info "#{m.read_property("node_name")}, current: #{m.read_property("current")}, desired: #{m.read_property("desired")}"
-              if m.read_property("current").to_sym == :pxe_on && m.read_property("desired").to_sym == :pxe_on
-                puts "INFO: Node '#{options[:node]}' is up and running on pxe."
-                comm.subscribe('frisbee_factory') do |fcontroller|
-                  puts "INFO: Requesting available port"
-                  fcontroller.request([:ports]) do |m|
-                    port = m.read_property("ports")
-                    start_saving()
-                    puts "INFO: Starting Imagezip Server on port '#{port}'"
-                    create_imagezip_server(comm, fcontroller, port, options)
-                    puts "INFO: Starting Imagezip Client on node '#{options[:node]}'"
-                    create_imagezip_client(comm, fcontroller, options[:node], port, options)
-                    print "INFO: Saving Image for node '#{options[:node]}'..."
-                    show_wait_spinner(5){
-                      while saving?
-                        sleep 1 
+      controller.create(:cm, hrn: "cm") do |reply_msg|
+        if reply_msg.success?
+          cm_res = reply_msg.resource
+          cm_res.on_subscribed do
+            cm_res.on_message do |m|
+              if m.operation == :inform
+                case m.read_content("itype")
+                when 'STATUS'
+                  unless m.read_property("current").nil? && m.read_property("desired").nil?
+                  # logger.info "#{m.read_property("node_name")}, current: #{m.read_property("current")}, desired: #{m.read_property("desired")}"
+                    if m.read_property("current").to_sym == :pxe_on && m.read_property("desired").to_sym == :pxe_on
+                      puts "INFO: Node '#{options[:node]}' is up and running on pxe."
+                      comm.subscribe('frisbee_factory') do |fcontroller|
+                        puts "INFO: Requesting available port"
+                        fcontroller.request([:ports]) do |m|
+                          port = m.read_property("ports")
+                          start_saving()
+                          puts "INFO: Starting Imagezip Server on port '#{port}'"
+                          create_imagezip_server(comm, fcontroller, port, options)
+                          puts "INFO: Starting Imagezip Client on node '#{options[:node]}'"
+                          create_imagezip_client(comm, fcontroller, cm_res, options[:node], port, options)
+                          print "INFO: Saving Image for node '#{options[:node]}'..."
+                          show_wait_spinner(5){
+                            while saving?
+                              sleep 1
+                            end
+                            print "\b"
+                            print "done!"
+                            puts "\n"
+                          }
+                        end
                       end
-                      print "\b"
-                      print "done!"
-                      puts "\n"
-                    }
+                    else
+                      puts "ERROR: exit code: #{m.read_content('exit_code')}" if m.read_content('exit_code')
+                    end
                   end
+                when 'ERROR'
+                  case m.read_property("event_type")
+                  when "AUTH"
+                    puts "ERROR AUTH: #{m.read_property("msg")}"
+                    shut_down(comm)
+                  when "HTTP"
+                    puts "ERROR HTTP: #{m.read_property("msg")}"
+                    if @retried
+                      shut_down(comm)
+                    else
+                      @retried = true
+                      controller.configure(state: {node: options[:node].to_sym, status: :start_on_pxe})
+                    end
+                  when "TIME_OUT"
+                    puts "ERROR TIME_OUT: #{m.read_property("msg")}"
+                    shut_down(comm)
+                  else
+                    puts "ERROR:  #{m.read_content('reason')}" if m.read_content("reason")
+                  end
+                when 'WARN'
+                  puts "WARN: #{m.read_content('reason')}" if m.read_content("reason")
                 end
-              else
-                puts "ERROR: exit code: #{m.read_content('exit_code')}" if m.read_content('exit_code')
               end
             end
-          when 'ERROR'
-            case m.read_property("event_type")
-            when "AUTH"
-              puts "ERROR AUTH: #{m.read_property("msg")}"
-              shut_down(comm)
-            when "HTTP"
-              puts "ERROR HTTP: #{m.read_property("msg")}"
-              if @retried
-                shut_down(comm)
-              else
-                @retried = true
-                controller.configure(state: {node: options[:node].to_sym, status: :start_on_pxe})
-              end
-            when "TIME_OUT"
-              puts "ERROR TIME_OUT: #{m.read_property("msg")}"
-              shut_down(comm)
-            else
-              puts "ERROR:  #{m.read_content('reason')}" if m.read_content("reason")
-            end
-          when 'WARN'
-            puts "WARN: #{m.read_content('reason')}" if m.read_content("reason")
+
+            cm_res.configure(state: {node: options[:node].to_sym, status: :start_on_pxe})
+            puts "INFO: Waiting for Node '#{options[:node]}' to boot on PXE."
           end
+        else
+          error controller.inspect
+          shut_down(comm)
         end
       end
-
-      controller.configure(state: {node: options[:node].to_sym, status: :start_on_pxe})
-      puts "INFO: Waiting for Node '#{options[:node]}' to boot on PXE."
     else
       puts "ERROR: #{controller.inspect}"
     end
@@ -574,102 +594,107 @@ def tell(comm, options)
       nodes_failed = []
       nodes_ok = []
       nodes_retrying = []
-      controller.on_message do |m|
-        if m.operation == :inform
-          case m.read_content("itype")
-          when 'STATUS'
-            unless m.read_property("current").nil? && m.read_property("desired").nil?
-              if m.read_property("current") != m.read_property("desired")
-                if options[:wait]
-                  puts "INFO: Waiting for node '#{m.read_property("node_name")}'."
-                else
-                  n = m.read_property("node_name")
-                  nodes_ok << n
-                  if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
+
+      controller.create(:cm, {hrn: 'cm resource'}) do |reply_msg|
+        if reply_msg.success?
+          res = reply_msg.resource
+          res.on_subscribed do
+            res.on_message do |m|
+              if m.operation == :inform
+                case m.read_content("itype")
+                when 'STATUS'
+                  unless m.read_property("current").nil? && m.read_property("desired").nil?
+                    if m.read_property("current") != m.read_property("desired")
+                      if options[:wait]
+                        puts "INFO: Waiting for node '#{m.read_property("node_name")}'."
+                      else
+                        n = m.read_property("node_name")
+                        nodes_ok << n
+                        if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
+                          tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
+                          shut_down(comm)
+                        end
+                      end
+                    else
+                      n = m.read_property("node_name")
+                      nodes_ok << n
+                      if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
+                        tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
+                        puts "INFO: Proccess complete. "
+                        shut_down(comm)
+                      end
+                    end
+                  end
+                when 'ERROR'
+                  case m.read_property("event_type")
+                  when "AUTH"
+                    puts "ERROR AUTH: #{m.read_property("msg")}"
+                    n = m.read_property("node_name")
+                    nodes_failed << n
+                    if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
+                      tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
+                      puts "INFO: Proccess complete. "
+                      shut_down(comm)
+                    end
+                  when "HTTP"
+                    puts "ERROR HTTP: #{m.read_property("msg")}"
+                    n = m.read_property("node_name")
+                    if nodes_retrying.include?(n)
+                      nodes_retrying.delete(n)
+                      nodes_failed << n
+                      if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
+                        tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
+                        puts "INFO: Proccess complete. "
+                        shut_down(comm)
+                      end
+                    else
+                      nodes_retrying << n
+                      puts "INFO: Failed to reach Node '#{n}', retrying to get the status of the node."
+                      controller.configure(state: {node: n.to_sym, status: options[:status].to_sym})
+                    end
+                  when "TIME_OUT"
+                    puts "ERROR TIME_OUT: #{m.read_property("msg")}"
+                    n = m.read_property("node_name")
+                    nodes_failed << n
+                    if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
+                      tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
+                      puts "INFO: Proccess complete. "
+                      shut_down(comm)
+                    end
+                  else
+                    puts "ERROR: #{m.read_content('reason')}" if m.read_content("reason")
                     tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
+                    puts "INFO: Proccess complete. "
                     shut_down(comm)
                   end
-                end
-              else
-                n = m.read_property("node_name")
-                nodes_ok << n
-                if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
-                  tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
-                  puts "INFO: Proccess complete. "
-                  shut_down(comm)
+                when 'WARN'
+                  puts "WARN: #{m.read_content('reason')}" if m.read_content("reason")
                 end
               end
             end
-          when 'ERROR'
-            case m.read_property("event_type")
-            when "AUTH"
-              puts "ERROR AUTH: #{m.read_property("msg")}"
-              n = m.read_property("node_name")
-              nodes_failed << n
-              if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
-                tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
-                puts "INFO: Proccess complete. "
-                shut_down(comm)
-              end
-            when "HTTP"
-              puts "ERROR HTTP: #{m.read_property("msg")}"
-              n = m.read_property("node_name")
-              if nodes_retrying.include?(n)
-                nodes_retrying.delete(n)
-                nodes_failed << n
-                if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
-                  tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
-                  puts "INFO: Proccess complete. "
-                  shut_down(comm)
-                end
-              else
-                nodes_retrying << n
-                puts "INFO: Failed to reach Node '#{n}', retrying to get the status of the node."
-                controller.configure(state: {node: n.to_sym, status: options[:status].to_sym})
-              end
-            when "TIME_OUT"
-              puts "ERROR TIME_OUT: #{m.read_property("msg")}"
-              n = m.read_property("node_name")
-              nodes_failed << n
-              if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
-                tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
-                puts "INFO: Proccess complete. "
-                shut_down(comm)
-              end
-            else
-              puts "ERROR: #{m.read_content('reason')}" if m.read_content("reason")
-              tell_complete_msg(options[:status], nodes_ok, nodes_failed) if options[:wait]
-              puts "INFO: Proccess complete. "
-              shut_down(comm)
-            end
-          when 'WARN'
-            puts "WARN: #{m.read_content('reason')}" if m.read_content("reason")
           end
+          if options[:status] == "on" || options[:status] == "off" || options[:status] == "reset"
+            options[:status] == 'reset' if options[:status] == "reboot" || options[:status] == "restart"
+            options[:target_nodes].each do |node|
+              res.configure(state: {node: node.to_sym, status: options[:status].to_sym, wait: options[:wait]})
+            end
+          else
+            puts "WARN: Invalid value for -a, only on/off/reset values are available."
+            puts opt_parser
+            shut_down(comm)
+          end
+          unless options[:wait]
+            puts "\nINFO: Proccess complete. "
+            shut_down(comm)
+          end
+        else
+          error controller.inspect
+          shut_down(comm)
         end
-      end
-      if options[:status] == "on"
-        options[:target_nodes].each do |node|
-          controller.configure(state: {node: node.to_sym, status: :on, wait: options[:wait]})
-        end
-      elsif options[:status] == "off"
-        options[:target_nodes].each do |node|
-          controller.configure(state: {node: node.to_sym, status: :off, wait: options[:wait]})
-        end
-      elsif options[:status] == "reset"
-        options[:target_nodes].each do |node|
-          controller.configure(state: {node: node.to_sym, status: :reset, wait: options[:wait]})
-        end
-      else
-        puts "WARN: Invalid value for -a, only on/off/reset values are available."
-        puts opt_parser
-        shut_down(comm)
-      end
-      unless options[:wait]
-        puts "\nINFO: Proccess complete. "
-        shut_down(comm)
       end
     else
       error controller.inspect
+      shut_down(comm)
     end
   end
 end
@@ -682,57 +707,67 @@ def stat(comm, options)
       nodes_failed = []
       nodes_ok = []
       nodes_retrying = []
-      controller.on_message do |m|
-        if m.operation == :inform
-          case m.read_content("itype")
-          when 'STATUS'
-            unless m.read_property("current").nil?
-              puts "INFO: Node '#{m.read_property("node_name")}' reported status is: #{m.read_property("current")}"
-              n = m.read_property("node_name")
-              nodes_ok << n
-              if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
-                puts "INFO: ------------------------------------------------------"
-                shut_down(comm)
-              end
-            end
-          when 'ERROR'
-            case m.read_property("event_type")
-            when "AUTH"
-              puts "ERROR AUTH: #{m.read_property("msg")}"
-              n = m.read_property("node_name")
-              nodes_failed << n
-              if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
-                puts "INFO: ------------------------------------------------------"
-                shut_down(comm)
-              end
-            when "HTTP"
-              puts "ERROR HTTP: #{m.read_property("msg")}"
-              n = m.read_property("node_name")
-              if nodes_retrying.include?(n)
-                nodes_retrying.delete(n)
-                nodes_failed << n
-                if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
-                  puts "INFO: ------------------------------------------------------"
-                  shut_down(comm)
+      controller.create(:cm, {hrn: 'cm resource'}) do |reply_msg|
+        if reply_msg.success?
+          res = reply_msg.resource
+          res.on_subscribed do
+            res.on_message do |m|
+              if m.operation == :inform
+                case m.read_content("itype")
+                when 'STATUS'
+                  unless m.read_property("current").nil?
+                    puts "INFO: Node '#{m.read_property("node_name")}' reported status is: #{m.read_property("current")}"
+                    n = m.read_property("node_name")
+                    nodes_ok << n
+                    if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
+                      puts "INFO: ------------------------------------------------------"
+                      shut_down(comm)
+                    end
+                  end
+                when 'ERROR'
+                  case m.read_property("event_type")
+                  when "AUTH"
+                    puts "ERROR AUTH: #{m.read_property("msg")}"
+                    n = m.read_property("node_name")
+                    nodes_failed << n
+                    if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
+                      puts "INFO: ------------------------------------------------------"
+                      shut_down(comm)
+                    end
+                  when "HTTP"
+                    puts "ERROR HTTP: #{m.read_property("msg")}"
+                    n = m.read_property("node_name")
+                    if nodes_retrying.include?(n)
+                      nodes_retrying.delete(n)
+                      nodes_failed << n
+                      if (nodes_ok.length + nodes_failed.length) == options[:target_nodes].length
+                        puts "INFO: ------------------------------------------------------"
+                        shut_down(comm)
+                      end
+                    else
+                      nodes_retrying << n
+                      puts "INFO: Failed to reach Node '#{n}', retrying to get the status of the node."
+                      controller.configure(state: {node: n.to_sym, status: :get_status})
+                    end
+                  else
+                    puts "ERROR: #{m.read_content('reason')}" if m.read_content("itype") == 'ERROR'
+                    puts "INFO: ------------------------------------------------------"
+                    shut_down(comm)
+                  end
+                when 'WARN'
+                  puts "WARN: #{m.read_content('reason')}" if m.read_content("itype") == 'WARN'
                 end
-              else
-                nodes_retrying << n
-                puts "INFO: Failed to reach Node '#{n}', retrying to get the status of the node."
-                controller.configure(state: {node: n.to_sym, status: :get_status})
               end
-            else
-              puts "ERROR: #{m.read_content('reason')}" if m.read_content("itype") == 'ERROR'
-              puts "INFO: ------------------------------------------------------"
-              shut_down(comm)
             end
-          when 'WARN'
-            puts "WARN: #{m.read_content('reason')}" if m.read_content("itype") == 'WARN'
-          end
-        end
-      end
 
-      options[:target_nodes].each do |node|
-        controller.configure(state: {node: node.to_sym, status: :get_status})
+            options[:target_nodes].each do |node|
+              res.configure(state: {node: node.to_sym, status: :get_status})
+            end
+          end
+        else
+          error controller.inspect
+          shut_down(comm)
+        end
       end
     else
       error controller.inspect
@@ -801,12 +836,13 @@ def shut_down(comm)
   comm.disconnect
 end
 
-OmfCommon.init(@config[:operationMode], {communication: { url: "#{@pubsub[:protocol]}://#{@pubsub[:script_user]}:#{@pubsub[:password]}@#{@pubsub[:server]}", auth: {}}, logging: nil }) do
+OmfCommon.init(@config[:operationMode], {communication: { url: "#{@pubsub[:protocol]}://#{@pubsub[:script_user]}:#{@pubsub[:password]}@#{@pubsub[:server]}", auth: {}}}) do
   OmfCommon.comm.on_connected do |comm|
     OmfCommon::Auth::CertificateStore.instance.register_default_certs(trusted_roots)
     entity.resource_id = OmfCommon.comm.local_topic.address
     OmfCommon::Auth::CertificateStore.instance.register(entity)
 
+    options[:status] = "reset" if ARGV[0] == 'tell' && (options[:status] == "reboot" || options[:status] == "restart")
     start_up_msg(ARGV[0], options)
 
     case ARGV[0]
@@ -866,8 +902,6 @@ OmfCommon.init(@config[:operationMode], {communication: { url: "#{@pubsub[:proto
       shut_down(comm)
     end
 
-    comm.on_interrupted { 
-      shut_down(comm) 
-    }
+    comm.on_interrupted {shut_down(comm)}
   end
 end

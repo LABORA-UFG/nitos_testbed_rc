@@ -29,8 +29,11 @@ module OmfRc::ResourceProxy::FrisbeeFactory
   def port_open?(port, seconds=1)
     Timeout::timeout(seconds) do
       begin
-        TCPServer.new('localhost', port) rescue return false
+        serv = TCPServer.new('localhost', port) 
+        serv.close
         return true
+      rescue 
+        return false
       end
     end
   rescue Timeout::Error

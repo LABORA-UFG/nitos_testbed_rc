@@ -23,6 +23,8 @@ module OmfRc::ResourceProxy::ImagezipServer #Imagezip server
   property :port
   property :image_name, :default => @fconf[:imageDir] + '/new_image.ndz'
 
+  property :app, :default => nil
+
   hook :after_initial_configured do |server|
     debug "Received message '#{server.opts.inspect}'"
     # if error_msg = server.opts.error_msg
@@ -36,13 +38,21 @@ module OmfRc::ResourceProxy::ImagezipServer #Imagezip server
     server.property.image_name = server.property.image_name.nil? ? @fconf[:imageDir] + '/' + @fconf[:defaultImage] : server.property.image_name
     server.property.image_name = server.property.image_name.start_with?('/') ? server.property.image_name : @fconf[:imageDir] + '/' + server.property.image_name
 
-    @app = ExecApp.new(server.property.app_id, server.build_command_line, server.property.map_err_to_out) do |event_type, app_id, msg|
+    @app = {} if @app.nil?
+
+    @app[server.uid] = ExecApp.new(server.property.app_id, server.build_command_line, server.property.map_err_to_out) do |event_type, app_id, msg|
       server.process_event(server, event_type, app_id, msg)
     end
   end
 
   hook :before_release do |server|
-    $ports.delete_if {|x| x == server.property.port} #ports is in frisbee_factory
+    begin
+      @app[server.uid].signal(signal = 'KILL') unless @app[server.uid].nil?
+    rescue Exception => e
+      raise e unless e.message == "No such process"
+    ensure
+      $ports.delete_if {|x| x == server.property.port}
+    end
   end
 
   def process_event(res, event_type, app_id, msg)

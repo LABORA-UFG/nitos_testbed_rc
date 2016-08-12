@@ -1,5 +1,16 @@
 #!/usr/bin/env ruby
 require 'fileutils'
+require 'optparse'
+
+options = {}
+
+optparse = OptionParser.new do |opts|
+  opts.on('-nc', '--no_conf', "Skip installation of configuration files") do |f|
+    options[:no_conf] = true
+  end
+end
+
+optparse.parse!
 
 spec = Gem::Specification.find_by_name("nitos_testbed_rc")
 gem_root = spec.gem_dir
@@ -18,28 +29,32 @@ unless File.directory?(log_path)
   FileUtils.mkdir_p(log_path)
 end
 
-puts "Installing configuration files."
-conf_files = []
-conf_files << "cm_proxy_conf.yaml"
-conf_files << "frisbee_proxy_conf.yaml"
-conf_files << "user_proxy_conf.yaml"
-conf_files << "omf_script_conf.yaml"
+if options[:no_conf]
+  puts "Skipping installation of configuration files."
+else
+  puts "Installing configuration files."
+  conf_files = []
+  conf_files << "cm_proxy_conf.yaml"
+  conf_files << "frisbee_proxy_conf.yaml"
+  conf_files << "user_proxy_conf.yaml"
+  conf_files << "omf_script_conf.yaml"
 
-conf_files.each do |file|
-  puts "Copying configuration file '#{gem_root}/etc/#{file}' to '#{config_path}'."
-  FileUtils.cp "#{gem_root}/etc/#{file}", "#{config_path}/#{file}"
-  FileUtils.chmod 0644, "#{config_path}/#{file}"
+  conf_files.each do |file|
+    puts "Copying configuration file '#{gem_root}/etc/#{file}' to '#{config_path}'."
+    FileUtils.cp "#{gem_root}/etc/#{file}", "#{config_path}/#{file}"
+    FileUtils.chmod 0644, "#{config_path}/#{file}"
+  end
+  puts "All configuration files have been installed, browse folder '#{config_path}' to alternate them appropriatly."
+
+  config_path = File.expand_path("~/.omf/etc")
+  unless File.directory?(config_path)
+    puts "Generating directory '#{config_path}'."
+    FileUtils.mkdir_p(config_path)
+  end
+
+  FileUtils.cp "#{gem_root}/etc/omf_script_conf.yaml", "#{config_path}/omf_script_conf.yaml"
+  FileUtils.chmod 0644, "#{config_path}/omf_script_conf.yaml"
 end
-puts "All configuration files have been installed, browse folder '#{config_path}' to alternate them appropriatly."
-
-config_path = File.expand_path("~/.omf/etc")
-unless File.directory?(config_path)
-  puts "Generating directory '#{config_path}'."
-  FileUtils.mkdir_p(config_path)
-end
-
-FileUtils.cp "#{gem_root}/etc/omf_script_conf.yaml", "#{config_path}/omf_script_conf.yaml"
-FileUtils.chmod 0644, "#{config_path}/omf_script_conf.yaml"
 
 puts "Copying initialization script 'run_ntrc.sh'."
 FileUtils.cp "#{gem_root}/init/run_ntrc.sh", "/usr/local/bin/run_ntrc.sh"

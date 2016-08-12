@@ -86,7 +86,7 @@ class FrisbeePDP
           return msg
         end
 
-        node = node[:resources].first
+        node = node[:resource]
 
         # if @config[:testbedDomain] != "ALL" && node[:domain] != @config[:testbedDomain] 
         #   debug "This node does not belong to the domain '#{@config[:testbedDomain]}'"
@@ -98,7 +98,7 @@ class FrisbeePDP
         nod[:node_name] = node[:name]
         node[:interfaces].each do |i|
           if i[:role] == "control"
-            nod[:node_ip] = i[:ip][:address]
+            nod[:node_ip] = i[:ips].first[:address]
             nod[:node_mac] = i[:mac]
           elsif i[:role] == "cm_network"
             nod[:node_cm_ip] = i[:ip][:address]
@@ -115,7 +115,6 @@ class FrisbeePDP
         lease = nil
         unless node[:leases].nil?
           node[:leases].each do |l|
-            l = l[:lease]
             next if l[:account][:name] != acc
             if Time.parse(l[:valid_from]) <= Time.now && Time.parse(l[:valid_until]) >= Time.now
               lease = l

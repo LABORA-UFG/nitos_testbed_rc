@@ -16,6 +16,7 @@ $stdout.sync = true
 @pubsub = @config[:pubsub]
 
 require 'nitos_testbed_rc/cm_factory'
+require 'nitos_testbed_rc/cm'
 
 cm_entity_cert = File.expand_path(@auth[:entity_cert])
 cm_entity_key = File.expand_path(@auth[:entity_key])
@@ -53,10 +54,14 @@ class CmPDP
         return msg# next
       end
 
-      node_name = msg.properties.state.node
+      node_name = msg.properties.respond_to?(:state) ? msg.properties.state.node : msg.properties[:state][:node]
       broker = @config[:broker_url]
 
-      uri = URI.parse("#{broker}/resources/nodes?name=#{node_name}")
+      if node_name.start_with?('e_node_b')
+        uri = URI.parse("#{broker}/resources/lte?name=#{node_name}")
+      else
+        uri = URI.parse("#{broker}/resources/nodes?name=#{node_name}")
+      end
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
@@ -82,7 +87,7 @@ class CmPDP
         return msg
       end
 
-      node = node[:resources].first
+      node = node[:resource]
 
       # if @config[:testbedDomain] != "ALL" && node[:domain] != @config[:testbedDomain] 
       #   debug "This node does not belong to the domain '#{@config[:testbedDomain]}'"
@@ -92,19 +97,28 @@ class CmPDP
 
       nod = {}
       nod[:node_name] = node[:name]
-      node[:interfaces].each do |i|
-        if i[:role] == "control"
-          nod[:node_ip] = i[:ip][:address]
-          nod[:node_mac] = i[:mac]
-        elsif i[:role] == "cm_network"
-          nod[:node_cm_ip] = i[:ip][:address]
+      if !node[:interfaces].nil? && !node[:interfaces].empty?
+        node[:interfaces].each do |i|
+          if i[:role] == "control"
+            nod[:node_ip] = i[:ips].first[:address]
+            nod[:node_mac] = i[:mac]
+          elsif i[:role] == "cm_network"
+            nod[:node_cm_ip] = i[:ip][:address]
+          end
         end
+      elsif !node[:control_ip].nil? || !node[:control_ip].empty?
+        nod[:node_ip] = node[:control_ip][:address]
+        nod[:node_mac] = ''
       end
-      nod[:node_cm_ip] = node[:cmc][:ip][:address]
+      nod[:node_cm_ip] = node[:cmc][:ip][:address] if node[:cmc]
       
       if acc == 'root'
         debug "AUTH PASSED (root account)"
-        msg.properties.state.node = nod
+        if msg.properties.respond_to?(:state)
+          msg.properties.state.node = nod
+        else
+          msg.properties[:state][:node] = nod
+        end
         return msg
       end
 
@@ -112,7 +126,6 @@ class CmPDP
       lease = nil
       unless node[:leases].nil?
         node[:leases].each do |l|
-          l = l[:lease]
           next if l[:account][:name] != acc
           if Time.parse(l[:valid_from]) <= Time.now && Time.parse(l[:valid_until]) >= Time.now
             lease = l
@@ -127,7 +140,11 @@ class CmPDP
         return msg
       else
         debug "AUTH PASSED"
-        msg.properties.state.node = nod
+        if msg.properties.respond_to?(:state)
+          msg.properties.state.node = nod
+        else
+          msg.properties[:state][:node] = nod
+        end
         return msg
       end
       # wait = true
@@ -229,9 +246,7 @@ OmfCommon.init(@config[:operationMode], opts) do |el|#communication: { url: "xmp
     info "CM Factory >> Connected to #{@pubsub[:protocol].upcase} server"
     cmFact = OmfRc::ResourceFactory.create(:cm_factory, { uid: 'cm_factory', certificate: cm_entity })
 
-    comm.on_interrupted {
-      cmFact.disconnect
-    }
+    comm.on_interrupted { cmFact.disconnect }
   end
 end
 
