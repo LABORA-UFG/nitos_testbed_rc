@@ -1,0 +1,11 @@
+---
+# default topic name is this machine's hostname
+# this is to ensure that every RC has its own topic and AMQP account
+environment: production
+
+communication:
+  url: amqp://testbed:testbed@<control_network>
+
+resources:
+- type: node
+  uid: <%= Socket.gethostname %>

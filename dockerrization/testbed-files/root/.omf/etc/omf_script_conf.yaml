@@ -1,0 +1,14 @@
+:amqp:
+  :script_user: testbed
+  :password: lab251
+  :server: pubsub
+:auth:
+  :root_cert_dir: /etc/nitos_testbed_rc/trusted_roots
+  :entity_cert: /root/.omf/user_cert.pem
+  :entity_key: /root/.ssh/id_rsa
+#operation mode for OmfCommon.init (development, production, etc)
+:operationMode: production
+#omf script configuration
+:omf_script:
+  #default last action on load and save commands (reset or shutdown)
+  :last_action: reset

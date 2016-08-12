@@ -1,0 +1,72 @@
+[
+  {
+    "name": "icarus5",
+    "hostname": "icarus5",
+    "urn": "urn:publicid:IDN+ufg.br+node+icarus5",
+    "interfaces_attributes": [
+      {
+        "name": "icarus5:if0",
+        "role": "control",
+        "mac": "00:03:1d:0c:23:46",
+        "ips_attributes": [
+          {
+            "address": "10.0.0.5",
+            "netmask": "255.255.0.0",
+            "ip_type": "ipv4"
+          }
+        ]
+      },
+      {
+        "name": "icarus5:if1",
+        "role": "experimental",
+        "mac": "00:03:1d:0c:23:47"
+      }
+    ],
+    "cmc_attributes": {
+      "name": "icarus5:cm",
+      "mac": "00:00:ac:10:89:05",
+      "ip_attributes": {
+        "address": "172.16.137.5",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    },
+    "domain": "ufg.br",
+    "gateway": "pubsub"
+  },
+  {
+    "name": "icarus6",
+    "hostname": "icarus6",
+    "urn": "urn:publicid:IDN+ufg.br+node+icarus6",
+    "interfaces_attributes": [
+      {
+        "name": "icarus6:if0",
+        "role": "control",
+        "mac": "00:03:1d:0c:23:48",
+        "ips_attributes": [
+          {
+            "address": "10.0.0.6",
+            "netmask": "255.255.0.0",
+            "ip_type": "ipv4"
+          }
+        ]
+      },
+      {
+        "name": "icarus6:if1",
+        "role": "experimental",
+        "mac": "00:03:1d:0c:23:49"
+      }
+    ],
+    "cmc_attributes": {
+      "name": "icarus6:cm",
+      "mac": "00:00:ac:10:89:06",
+      "ip_attributes": {
+        "address": "172.16.137.6",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    },
+    "domain": "ufg.br",
+    "gateway": "10.0.0.200"
+  }
+]

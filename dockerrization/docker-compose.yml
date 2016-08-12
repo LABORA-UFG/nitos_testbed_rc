@@ -1,0 +1,37 @@
+version: '2'
+
+services:
+    nitos:
+        build: .
+        image: nitos
+        container_name: nitos
+        #links:
+        #    - pubsub
+        #ports:
+        #    - "8001:8001"
+        entrypoint: /usr/bin/entrypoint.sh
+        volumes:
+              - ../:/var/lib/gems/2.2.3/gems/nitos_testbed_rc-1.0.2
+        environment:
+          - NITOS_HOME=/var/lib/gems/2.2.3/gems/nitos_testbed_rc-1.0.2
+#    pubsub:
+#        image: sameersbn/openfire:latest
+#        container_name: pubsub
+#        ports:
+#            - "9090:9090"
+#            - "5222:5222"
+#            - "7777:7777"
+#        volumes:
+#            - ./openfire:/var/lib/openfire
+#    pubsub:
+#        image: rabbitmq:3-management
+#        container_name: pubsub
+#        hostname: testbed
+#        ports:
+#            - 5672:5672 # port for the daemon API, can be exposed to public.
+#            - 15672:15672 # port for the Management interface
+#        #volumes:
+#        #    - ./rabbitmq:/var/lib/rabbitmq
+#        #command: chown -v -R 999:999 /var/lib/rabbitmq
+#        #command: chmod -v -R 600 /var/lib/rabbitmq/
+#        env_file: rabbitmq.env

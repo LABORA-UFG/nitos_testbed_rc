@@ -1,17 +1,17 @@
 #pubsub details
 :pubsub:
-  :protocol: amqp
+  :protocol: xmpp
   :username: frisbee_proxy
   :password: pw
-  :server: testserver
+  :server: localhost
 #x509 certificates to be used by user_proxy
 :auth:
-  :root_cert_dir: /root/.omf/trusted_roots
-  :entity_cert: /root/.omf/frisbee_factory.pem
-  :entity_key: /root/.omf/frisbee_factory.pkey
+  :root_cert_dir: ~/.omf/trusted_roots
+  :entity_cert: ~/.omf/frisbee_factory.pem
+  :entity_key: ~/.omf/frisbee_factory.pkey
 
 # URL for the rest interface of the broker
-:broker_url: https://nitlab.inf.uth.gr:8001 
+:broker_url: https://localhost:8001
 
 #operation Mode for OmfCommon.init (development, production, etc)
 :operationMode: development

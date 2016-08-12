@@ -1,0 +1,6 @@
+SERIAL 0 19200 0
+DEFAULT linux
+LABEL linux
+KERNEL linux-omf-pxe-3.0.4
+APPEND console=tty0 console=ttyS0,19200n8 vga=normal quiet acpi=off noisapnp root=/dev/ram0 rw load_ramdisk=1 prompt_ramdisk=1 ramdisk_size=32768 initrd=initramfs-omf-pxe-5.4.bz2 control=eth0 xmpp=<control_network> slice=pxe_slice hrn=omf6.<domain>.%hostname%
+PROMPT 0

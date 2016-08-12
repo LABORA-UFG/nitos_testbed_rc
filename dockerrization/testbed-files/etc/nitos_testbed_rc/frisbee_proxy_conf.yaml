@@ -1,0 +1,52 @@
+#xmpp details
+:amqp:
+  :username: frisbee_user
+  :password: lab251
+  :server: pubsub
+#x509 certificates to be used by user_proxy
+:auth:
+  :root_cert_dir: /root/.omf/trusted_roots
+  :entity_cert: /root/.omf/frisbee_factory.pem
+  :entity_key: /root/.omf/frisbee_factory.pkey
+
+# URL for the rest interface of the broker
+:broker_url: https://broker:8001
+
+#operation Mode for OmfCommon.init (development, production, etc)
+:operationMode: development
+
+#testbed xmpp topic
+:testbedTopic: am_controller
+
+#testbed domain (resources with other domains will be ignored unless if this has the value 'ALL')
+:testbedDomain: $DOMAIN
+
+#frisbee and imagezip configuration
+:frisbee:
+  # Directory images are stored
+  :imageDir: /root/omf-images
+  #defaultImage: orbit-baseline
+  :defaultImage: baseline.ndz
+
+  # max bandwidth for frisbee server
+  :bandwidth: 170000000
+
+  # Multicast address to use for servicing images
+  #mcAddress: 224.0.0.2
+  :mcAddress: 224.0.0.1
+  # Using ports starting at ...
+  :startPort: 7000
+
+  # Time out frisbee server if nobody requested it within TIMEOUT sec
+  :timeout: 3600
+
+  # Directory to find frisbee daemons
+  :frisbeedBin: /usr/sbin/frisbeed
+  :frisbeeBin: /usr/sbin/frisbee
+  :imagezipClientBin: /usr/bin/imagezip
+  :imagezipClientNC: /bin/nc -q 0
+  :imagezipServerBin: /bin/nc
+
+  # Local interface to bind to for frisbee traffic
+  #multicastIF: 192.168.204.1
+  :multicastIF: pubsub

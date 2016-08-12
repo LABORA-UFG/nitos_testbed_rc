@@ -1,8 +1,8 @@
 :pubsub:
-  :protocol: amqp
+  :protocol: xmpp
   :script_user: script_user
   :password: pw
-  :server: <%= Socket.gethostname %>.inf.uth.gr
+  :server: localhost
 :auth:
   :root_cert_dir: /etc/nitos_testbed_rc/trusted_roots
   :entity_cert: ~/.omf/user_cert.pem
