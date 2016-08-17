@@ -6,6 +6,7 @@ require 'yaml'
 require "net/https"
 require "uri"
 require "json"
+require 'hashie'
 require 'time'
 
 $stdout.sync = true
@@ -47,17 +48,20 @@ class FrisbeePDP
 
   def authorize(msg, &block)
     debug "AUTH message received: #{msg.operation}"
+
+    properties = msg.properties.is_a?(Hash.class) ? Hashie::Mash.new(msg.properties) : msg.properties
+
     if msg.operation.to_sym == :create
       if msg.rtype.to_sym == :frisbee || msg.rtype.to_sym == :imagezip_client
         acc = _get_account_name(msg)
 
         if acc.nil?
           error "AUTH error: Account not found"
-          msg.properties.state.error_msg = "Account name not found"
+          properties.state.error_msg = "Account name not found"
           return msg# next
         end
 
-        node_name = msg.properties.node_topic
+        node_name = properties.node_topic
         broker = @config[:broker_url]
 
         uri = URI.parse("#{broker}/resources/nodes?name=#{node_name}")
@@ -71,10 +75,10 @@ class FrisbeePDP
         if response.header.code != '200'
           if resp[:exception] == "No resources matching the request."
             error "AUTH error: Node '#{node_name}' does not exist."
-            msg.properties.state.error_msg = "Node #{node_name} does not exist."
+            properties.state.error_msg = "Node #{node_name} does not exist."
           else
             error "AUTH error: empty response"
-            msg.properties.state.error_msg = "#{resp[:reason]} - code: '#{resp[:exception][:code]}'"
+            properties.state.error_msg = "#{resp[:reason]} - code: '#{resp[:exception][:code]}'"
           end
           return msg# next
         end
@@ -82,7 +86,7 @@ class FrisbeePDP
         node = resp[:resource_response]
         if node.nil?
           error "AUTH error: Node not found"
-          msg.properties.state.error_msg = "#{resp[:reason]} - code: '#{resp[:exception][:code]}'"
+          properties.state.error_msg = "#{resp[:reason]} - code: '#{resp[:exception][:code]}'"
           return msg
         end
 
@@ -108,7 +112,7 @@ class FrisbeePDP
 
         if acc == 'root'
           debug "AUTH PASSED (root account)"
-          msg.properties.node = nod
+          properties.node = nod
           return msg
         end
 
@@ -125,11 +129,11 @@ class FrisbeePDP
 
         if lease.nil?
           error "AUTH error: node not available"
-          msg.properties.error_msg = "Node is not leased by your account."
+          properties.error_msg = "Node is not leased by your account."
           return msg
         else
           debug "AUTH PASSED"
-          msg.properties.node = nod
+          properties.node = nod
           return msg
         end
         # wait = true

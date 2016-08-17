@@ -59,7 +59,7 @@ def create_frisbeed(comm, fcontroller, port, options)
     #image "/var/lib/omf-images-5.4/baseline.ndz"
     if reply_msg.success?
       server = reply_msg.resource
-      @@server = server
+      @server = server
       server.on_subscribed do
         server.on_message do |m|
           if m.operation == :inform
@@ -122,7 +122,7 @@ def create_frisbee(comm, fcontroller, cm_controller, node, port, options, progre
                         @nodes_up_without_pxe << n
                         if @nodes_up_pxe.length == (@nodes_up_without_pxe.length + @nodes_failed_without_pxe.length)
                           # puts "INFO: Load proccess completed."
-                          # fcontroller.release(@@server) do |reply_msg|
+                          # fcontroller.release(@server) do |reply_msg|
                           #   shut_down(comm)
                           # end
                           stop_loading(comm)
@@ -202,7 +202,7 @@ end
 def stop_loading(comm)
   @loading = false
   puts "INFO: Load proccess completed."
-  @fcontroller.release(@@server) do |reply_msg|
+  @fcontroller.release(@server) do |reply_msg|
     shut_down(comm)
   end 
   sleep 2
@@ -395,7 +395,7 @@ def create_imagezip_server(comm, fcontroller, port, options)
   fcontroller.create(:imagezip_server, {hrn: 'imagezip server', image_name: @image, port: port}) do |reply_msg|
     if reply_msg.success?
       server = reply_msg.resource
-      @@server = server
+      @server = server
       server.on_subscribed do
         server.on_message do |m|
           if m.operation == :inform
@@ -443,7 +443,7 @@ def create_imagezip_client(comm, fcontroller, cm_controller, node, port, options
                     unless cm_msg.read_property("current").nil? && cm_msg.read_property("desired").nil?
                       if cm_msg.read_property("current").to_sym == :pxe_off && cm_msg.read_property("desired").to_sym == :pxe_off
                         puts "INFO: Save proccess completed."
-                        fcontroller.release(@@server) do |reply_msg|
+                        fcontroller.release(@server) do |reply_msg|
                           shut_down(comm)
                         end
                       end
@@ -452,13 +452,13 @@ def create_imagezip_client(comm, fcontroller, cm_controller, node, port, options
                     case cm_msg.read_property("event_type")
                     when "AUTH"
                       puts "ERROR AUTH: #{cm_msg.read_property("msg")}"
-                      fcontroller.release(@@server) do |reply_msg|
+                      fcontroller.release(@server) do |reply_msg|
                         shut_down(comm)
                       end
                     when "HTTP"
                       puts "ERROR HTTP: #{cm_msg.read_property("msg")}"
                       if @retried
-                        fcontroller.release(@@server) do |reply_msg|
+                        fcontroller.release(@server) do |reply_msg|
                           puts "INFO: #{client_msg.read_property("node")}: #{client_msg.read_property("msg")}"
                           puts "INFO: Image was saved in '#{@frisbee[:imageDir]}/#{@image}'"
                           shut_down(comm)
@@ -469,7 +469,7 @@ def create_imagezip_client(comm, fcontroller, cm_controller, node, port, options
                       end
                     when "TIME_OUT"
                       puts "ERROR TIME_OUT: #{cm_msg.read_property("msg")}"
-                      fcontroller.release(@@server) do |reply_msg|
+                      fcontroller.release(@server) do |reply_msg|
                         puts "INFO: #{client_msg.read_property("node")}: #{client_msg.read_property("msg")}"
                         puts "INFO: Image was saved in '#{@frisbee[:imageDir]}/#{@image}'"
                         shut_down(comm)
