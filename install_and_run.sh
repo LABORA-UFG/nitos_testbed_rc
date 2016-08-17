@@ -16,7 +16,7 @@ openssl rsa -in ~/.omf/am.pem -outform PEM -out ~/.omf/am.pkey
 openssl rsa -in ~/.omf/user_cert.pem -outform PEM -out ~/.omf/user_cert.pkey
 
 gem build nitos_testbed_rc.gemspec
-sudo gem install nitos_testbed_rc-1.0.2.gem
+sudo gem install nitos_testbed_rc-2.0.5.gem
 
 sudo install_ntrc
 

@@ -208,7 +208,6 @@ def stop_loading(comm)
   sleep 2
 end
 
-
 def start_load(comm, cm_controller, options, node)
   if @nodes_up_pxe.length == 0
     puts "ERROR: ALL Nodes failled to boot on PXE."
@@ -263,19 +262,20 @@ end
 
 def wait_until_timeout(fps=1)
   delay = 1.0/fps
-  iter = 0
-  spinner = Thread.new do
-    while iter do  # Keep spinning until told otherwise
-      print "INFO: #{@time} / #{@cmconfig[:timeout]} seconds until TIMEOUT!"
+
+  Thread.new do
+    while @waiting && @time <= @cmconfig[:timeout] do  # Keep spinning until told otherwise
+      printf("INFO: %d/%d seconds until TIMEOUT!", @time, @cmconfig[:timeout])
       sleep delay
+      @time += 1
       print "\r"
       STDOUT.flush
     end
+    if @time > @cmconfig[:timeout]
+      puts "\nAPPLICATION TIMEOUT - None of the resources booted at PXE before the timeout."
+      Kernel.exit(0)
+    end
   end
-  yield.tap{       # After yielding to the block, save the return value
-    iter = false   # Tell the thread to exit, cleaning up after itself…
-    spinner.join   # …and wait for it to do so.
-  }                # Use the block's return value as the method's
 end
 
 def load(comm, options)
@@ -345,12 +345,7 @@ def load(comm, options)
             puts "INFO: Waiting for target nodes to boot on PXE."
             @waiting = true
             @time = 0
-            wait_until_timeout(1){
-              while waiting?
-                sleep 1 # Simulate a task taking an unknown amount of time
-                @time += 1
-              end
-            }
+            wait_until_timeout(1)
           end
         else
           error reply_msg.inspect
