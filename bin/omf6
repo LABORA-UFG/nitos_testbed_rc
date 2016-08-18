@@ -374,18 +374,18 @@ end
 def show_wait_spinner(fps=10)
   chars = %w[| / - \\]
   delay = 1.0/fps
-  iter = 0
-  spinner = Thread.new do
-    while iter do  # Keep spinning until told otherwise
+
+  Thread.new do
+    iter = 0
+    while @saving do  # Keep spinning until told otherwise
       print chars[(iter+=1) % chars.length]
       sleep delay
       print "\b"
     end
+    print "\b"
+    print "done!"
+    puts "\n"
   end
-  yield.tap{       # After yielding to the block, save the return value
-    iter = false   # Tell the thread to exit, cleaning up after itself…
-    spinner.join   # …and wait for it to do so.
-  }                # Use the block's return value as the method's
 end
 
 #run imagezip server
@@ -400,9 +400,9 @@ def create_imagezip_server(comm, fcontroller, port, options)
         server.on_message do |m|
           if m.operation == :inform
             if m.read_content("event") == "STDOUT"
-              puts "INFO: #{puts m.read_content("msg")}"
+              puts "\nINFO: #{puts m.read_content("msg")}"
             elsif m.read_content("event") == "EXIT"
-              puts "INFO: #{m.read_content("msg")}"
+              puts "\nINFO: #{m.read_content("msg")}"
             end
           end
         end
@@ -528,14 +528,7 @@ def save(comm, options)
                           puts "INFO: Starting Imagezip Client on node '#{options[:node]}'"
                           create_imagezip_client(comm, fcontroller, cm_res, options[:node], port, options)
                           print "INFO: Saving Image for node '#{options[:node]}'..."
-                          show_wait_spinner(5){
-                            while saving?
-                              sleep 1
-                            end
-                            print "\b"
-                            print "done!"
-                            puts "\n"
-                          }
+                          show_wait_spinner(5)
                         end
                       end
                     else
