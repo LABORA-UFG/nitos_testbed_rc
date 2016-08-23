@@ -6,7 +6,6 @@ require 'yaml'
 require "net/https"
 require "uri"
 require "json"
-require 'hashie'
 require 'time'
 
 $stdout.sync = true
@@ -28,15 +27,15 @@ frisbee_entity = OmfCommon::Auth::Certificate.create_from_pem(File.read(frisbee_
 trusted_roots = File.expand_path(@auth[:root_cert_dir])
 
 opts = {
-  communication: {
-    url:  "#{@pubsub[:protocol]}://#{@pubsub[:username]}:#{@pubsub[:password]}@#{@pubsub[:server]}",
-    auth: {
-      authenticate: true,
-      pdp: {
-        constructor: 'FrisbeePDP'
-      }
+    communication: {
+        url:  "#{@pubsub[:protocol]}://#{@pubsub[:username]}:#{@pubsub[:password]}@#{@pubsub[:server]}",
+        auth: {
+            authenticate: true,
+            pdp: {
+                constructor: 'FrisbeePDP'
+            }
+        }
     }
-  }
 }
 
 class FrisbeePDP
@@ -49,11 +48,7 @@ class FrisbeePDP
   def authorize(msg, &block)
     debug "AUTH message received: #{msg.operation}"
 
-    properties = msg.properties.is_a?(Hash) ? Hashie::Mash.new(msg.properties) : msg.properties
-
-    #BUG: msg.properties must be an object, but for some reason is a Hash
-    #TODO refectory json_message.rb to transform msg.properties in an object
-    msg.properties = Hashie::Mash.new(msg.properties) if msg.properties.is_a?(Hash)
+    msg.properties = Hashie::Mash.new(msg.properties) if msg.properties.is_a? Hash
 
     if msg.operation.to_sym == :create
       if msg.rtype.to_sym == :frisbee || msg.rtype.to_sym == :imagezip_client
@@ -61,11 +56,11 @@ class FrisbeePDP
 
         if acc.nil?
           error "AUTH error: Account not found"
-          properties.state.error_msg = "Account name not found"
+          msg.properties.state.error_msg = "Account name not found"
           return msg# next
         end
 
-        node_name = properties.node_topic
+        node_name = msg.properties.node_topic
         broker = @config[:broker_url]
 
         uri = URI.parse("#{broker}/resources/nodes?name=#{node_name}")
@@ -79,10 +74,10 @@ class FrisbeePDP
         if response.header.code != '200'
           if resp[:exception] == "No resources matching the request."
             error "AUTH error: Node '#{node_name}' does not exist."
-            properties.state.error_msg = "Node #{node_name} does not exist."
+            msg.properties.state.error_msg = "Node #{node_name} does not exist."
           else
             error "AUTH error: empty response"
-            properties.state.error_msg = "#{resp[:reason]} - code: '#{resp[:exception][:code]}'"
+            msg.properties.state.error_msg = "#{resp[:reason]} - code: '#{resp[:exception][:code]}'"
           end
           return msg# next
         end
@@ -90,13 +85,13 @@ class FrisbeePDP
         node = resp[:resource_response]
         if node.nil?
           error "AUTH error: Node not found"
-          properties.state.error_msg = "#{resp[:reason]} - code: '#{resp[:exception][:code]}'"
+          msg.properties.state.error_msg = "#{resp[:reason]} - code: '#{resp[:exception][:code]}'"
           return msg
         end
 
         node = node[:resource]
 
-        # if @config[:testbedDomain] != "ALL" && node[:domain] != @config[:testbedDomain] 
+        # if @config[:testbedDomain] != "ALL" && node[:domain] != @config[:testbedDomain]
         #   debug "This node does not belong to the domain '#{@config[:testbedDomain]}'"
         #   msg.properties.state.ignore_msg = true
         #   return msg
@@ -116,7 +111,7 @@ class FrisbeePDP
 
         if acc == 'root'
           debug "AUTH PASSED (root account)"
-          properties.node = nod
+          msg.properties.node = nod
           return msg
         end
 
@@ -133,11 +128,11 @@ class FrisbeePDP
 
         if lease.nil?
           error "AUTH error: node not available"
-          properties.error_msg = "Node is not leased by your account."
+          msg.properties.error_msg = "Node is not leased by your account."
           return msg
         else
           debug "AUTH PASSED"
-          properties.node = nod
+          msg.properties.node = nod
           return msg
         end
         # wait = true
