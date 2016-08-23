@@ -5,7 +5,7 @@ if [ ! -f "$INVENTORY_PATH" ]; then
     echo "###############INSTALLATION OF THE MODULES###############"
     #Start of Broker installation
 
-    gem install omf_common -v 6.2.3
+    gem install omf_common -v 6.2.4
 
     echo "###############CREATING DEFAULT SSH KEY###############"
     ssh-keygen -b 2048 -t rsa -f /root/.ssh/id_rsa -q -N ""
