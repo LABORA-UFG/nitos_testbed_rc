@@ -8,6 +8,7 @@
   :root_cert_dir: /root/.omf/trusted_roots
   :entity_cert: /root/.omf/cm_factory.pem
   :entity_key: /root/.omf/cm_factory.pkey
+  :ch_key: /root/.omf/omf_control.chkey
 
 # URL for the rest interface of the broker
 :broker_url: https://nitlab.inf.uth.gr:8001 

@@ -6,6 +6,8 @@
   :root_cert_dir: /etc/nitos_testbed_rc/trusted_roots
   :entity_cert: ~/.omf/user_cert.pem
   :entity_key: ~/.ssh/id_rsa
+  :ch_key: ~/.omf/omf_control.chkey
+
 #operation mode for OmfCommon.init (development, production, etc)
 :operationMode: production
 #omf script configuration

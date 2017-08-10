@@ -8,5 +8,7 @@
   :root_cert_dir: /root/.omf/trusted_roots
   :entity_cert: /root/.omf/user_factory.pem
   :entity_key: /root/.omf/user_factory.pkey
+  :ch_key: /root/.omf/omf_control.chkey
+
 #operation mode for OmfCommon.init (development, production, etc)
 :operationMode: development

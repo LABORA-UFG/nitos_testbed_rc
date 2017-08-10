@@ -56,11 +56,15 @@ class CmPDP
       node_name = msg.properties.state.node
       broker = @config[:broker_url]
 
+      ch_key_path = File.expand_path(@auth[:ch_key])
+      ch_key = File.read(ch_key_path)
+
       uri = URI.parse("#{broker}/resources/nodes?name=#{node_name}")
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       request = Net::HTTP::Get.new(uri.request_uri)
+      request['CH-Credential'] = ch_key
       response = http.request(request)
       resp = JSON.parse(response.body, :symbolize_names => true)
 
