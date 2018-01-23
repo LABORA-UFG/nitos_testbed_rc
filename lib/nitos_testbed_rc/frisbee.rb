@@ -55,7 +55,7 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
       # nod[:node_cm_ip] = client.opts.node.cmc.ip.address
       #nod = {node_name: "node1", node_ip: "10.0.0.1", node_mac: "00-03-1d-0d-4b-96", node_cm_ip: "10.0.0.101"}
       nod = client.opts.node
-      client.property.multicast_interface = nod[:node_ip]
+      client.property.multicast_interface = nod[:node_ip].to_s.strip
       client.property.app_id = client.hrn.nil? ? client.uid : client.hrn
 
       command = "#{client.property.binary_path} -i #{client.property.multicast_interface} -m #{client.property.multicast_address} -p #{client.property.port} #{client.property.hardrive}"
@@ -121,14 +121,14 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
     end
 
     nod = client.opts.node
-    client.property.multicast_interface = nod[:node_ip]
+    client.property.multicast_interface = nod[:node_ip].to_s.strip
     client.property.app_id = client.hrn.nil? ? client.uid : client.hrn
 
     command = "#{client.property.binary_path} -i #{client.property.multicast_interface} -m #{client.property.multicast_address} -p #{client.property.port} #{client.property.hardrive}"
-    debug "Executing command #{command} on host #{client.property.multicast_interface.to_s}"
+    debug "Executing command #{command} on host #{client.property.multicast_interface}"
     
     output = ''
-    host = Net::Telnet.new("Host" => client.property.multicast_interface.to_s, "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
+    host = Net::Telnet.new("Host" => client.property.multicast_interface, "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
     host.cmd(command.to_s) do |c|
       if c[0,8] ==  "Progress"
         c = c.split[1]

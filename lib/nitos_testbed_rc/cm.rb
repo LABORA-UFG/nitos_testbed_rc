@@ -54,9 +54,9 @@ module OmfRc::ResourceProxy::CM
 
   #this is used by the get status call
   work("status") do |res, node|
-    debug "Status url: http://#{node[:node_cm_ip].to_s}/state"
+    debug "Status url: http://#{node[:node_cm_ip].to_s.strip}/state"
     begin
-      resp = open("http://#{node[:node_cm_ip].to_s}/state")
+      resp = open("http://#{node[:node_cm_ip].to_s.strip}/state")
     rescue
       res.inform(:error, {
         event_type: "HTTP",
@@ -77,19 +77,19 @@ module OmfRc::ResourceProxy::CM
 
   work("start_node") do |res, node, wait|
     node[:node_mac] = node[:node_mac].downcase.gsub(/:/, '-')
-    symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac]}"
+    symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac].strip}"
     if File.exists?(symlink_name)
       File.delete(symlink_name)
     end
-    debug "Start_node url: http://#{node[:node_cm_ip].to_s}/on"
+    debug "Start_node url: http://#{node[:node_cm_ip].to_s.strip}/on"
     begin
-      resp = open("http://#{node[:node_cm_ip].to_s}/on")
+      resp = open("http://#{node[:node_cm_ip].to_s.strip}/on")
     rescue
       res.inform(:error, {
         event_type: "HTTP",
         exit_code: "-1",
         node_name: "#{node[:node_name].to_s}",
-        msg: "#{node[:name]} failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+        msg: "#{node[:name]} failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
       }, :ALL)
       next
     end
@@ -131,7 +131,7 @@ module OmfRc::ResourceProxy::CM
 
   work("stop_node") do |res, node, wait|
     node[:node_mac] = node[:node_mac].downcase.gsub(/:/, '-')
-    symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac]}"
+    symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac].strip}"
     if File.exists?(symlink_name)
       File.delete(symlink_name)
     end
@@ -150,16 +150,16 @@ module OmfRc::ResourceProxy::CM
     rescue
       begin
         debug "ssh failed, using CM card instead."
-        debug "Stop_node url: http://#{node[:node_cm_ip].to_s}/off"
+        debug "Stop_node url: http://#{node[:node_cm_ip].to_s.strip}/off"
 
         begin
-          resp = open("http://#{node[:node_cm_ip].to_s}/off")
+          resp = open("http://#{node[:node_cm_ip].to_s.strip}/off")
         rescue
           res.inform(:error, {
             event_type: "HTTP",
             exit_code: "-1",
             node_name: "#{node[:node_name].to_s}",
-            msg: "#{node[:name]} failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+            msg: "#{node[:name]} failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
           }, :ALL)
           next
         end
@@ -184,7 +184,7 @@ module OmfRc::ResourceProxy::CM
           event_type: "HTTP",
           exit_code: "-1",
           node_name: "#{node[:node_name].to_s}",
-          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
         }, :ALL)
         next
       end
@@ -211,7 +211,7 @@ module OmfRc::ResourceProxy::CM
 
   work("reset_node") do |res, node, wait|
     node[:node_mac] = node[:node_mac].downcase.gsub(/:/, '-')
-    symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac]}"
+    symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac].strip}"
     if File.exists?(symlink_name)
       File.delete(symlink_name)
     end
@@ -229,15 +229,15 @@ module OmfRc::ResourceProxy::CM
     rescue
       begin
         debug "ssh failed, using CM card instead."
-        debug "Reset_node url: http://#{node[:node_cm_ip].to_s}/reset"
+        debug "Reset_node url: http://#{node[:node_cm_ip].to_s.strip}/reset"
         begin
-          resp = open("http://#{node[:node_cm_ip].to_s}/reset")
+          resp = open("http://#{node[:node_cm_ip].to_s.strip}/reset")
         rescue
           res.inform(:error, {
             event_type: "HTTP",
             exit_code: "-1",
             node_name: "#{node[:node_name].to_s}",
-            msg: "#{node[:name]} failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+            msg: "#{node[:name]} failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
           }, :ALL)
           next
         end
@@ -255,7 +255,7 @@ module OmfRc::ResourceProxy::CM
           event_type: "HTTP",
           exit_code: "-1",
           node_name: "#{node[:node_name].to_s}",
-          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
         }, :ALL)
         next
       end
@@ -284,92 +284,94 @@ module OmfRc::ResourceProxy::CM
     resp = res.get_status(node)
     node[:node_mac] = node[:node_mac].downcase.gsub(/:/, '-')
     if resp == :on
-      symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac]}"
+      symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac].strip}"
       if !File.exists?("#{symlink_name}")
         File.symlink("/tftpboot/pxelinux.cfg/#{@config[:pxeSymLinkConfFile]}", "#{symlink_name}")
       end
-      debug "Start_node_pxe RESET: http://#{node[:node_cm_ip].to_s}/reset"
+      debug "Start_node_pxe RESET: http://#{node[:node_cm_ip].to_s.strip}/reset"
       begin
-        open("http://#{node[:node_cm_ip].to_s}/reset")
+        open("http://#{node[:node_cm_ip].to_s.strip}/reset")
       rescue
         res.inform(:error, {
           event_type: "HTTP",
           exit_code: "-1",
           node_name: "#{node[:node_name].to_s}",
-          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
         }, :ALL)
         next
       end
     elsif resp == :off
-      symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac]}"
+      symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac].strip}"
       if !File.exists?("#{symlink_name}")
         File.symlink("/tftpboot/pxelinux.cfg/#{@config[:pxeSymLinkConfFile]}", "#{symlink_name}")
       end
-      debug "Start_node_pxe ON: http://#{node[:node_cm_ip].to_s}/on"
+      debug "Start_node_pxe ON: http://#{node[:node_cm_ip].to_s.strip}/on"
       begin
-        open("http://#{node[:node_cm_ip].to_s}/on")
+        open("http://#{node[:node_cm_ip].to_s.strip}/on")
       rescue
         res.inform(:error, {
           event_type: "HTTP",
           exit_code: "-1",
           node_name: "#{node[:node_name].to_s}",
-          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
         }, :ALL)
         next
       end
     elsif resp == :started_on_pxe
-      debug "Start_node_pxe STARTED: http://#{node[:node_cm_ip].to_s}/reset"
+      debug "Start_node_pxe STARTED: http://#{node[:node_cm_ip].to_s.strip}/reset"
       begin
-        open("http://#{node[:node_cm_ip].to_s}/reset")
+        open("http://#{node[:node_cm_ip].to_s.strip}/reset")
       rescue
         res.inform(:error, {
           event_type: "HTTP",
           exit_code: "-1",
           node_name: "#{node[:node_name].to_s}",
-          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
         }, :ALL)
         next
       end
     end
 
-    if res.wait_until_ping(res, node[:node_ip])
-      res.inform(:status, {
-        node_name: "#{node[:node_name].to_s}",
-        current: :pxe_on,
-        desired: :pxe_on
-      }, :ALL)
-    else
-      node[:node_mac] = node[:node_mac].downcase.gsub(/:/, '-')
-      symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac]}"
-      if File.exists?(symlink_name)
-        File.delete(symlink_name)
+    Thread.new {
+      if res.wait_until_ping(res, node[:node_ip])
+        res.inform(:status, {
+            node_name: "#{node[:node_name].to_s}",
+            current: :pxe_on,
+            desired: :pxe_on
+        }, :ALL)
+      else
+        node[:node_mac] = node[:node_mac].downcase.gsub(/:/, '-')
+        symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac].strip}"
+        if File.exists?(symlink_name)
+          File.delete(symlink_name)
+        end
+        res.inform(:error, {
+            event_type: "TIME_OUT",
+            exit_code: "-1",
+            node_name: "#{node[:node_name].to_s}",
+            msg: "Node '#{node[:node_name].to_s}' timed out while trying to boot on PXE."
+        }, :ALL)
       end
-      res.inform(:error, {
-        event_type: "TIME_OUT",
-        exit_code: "-1",
-        node_name: "#{node[:node_name].to_s}",
-        msg: "Node '#{node[:node_name].to_s}' timed out while trying to boot on PXE."
-      }, :ALL)
-    end
+    }
     sleep 1
   end
 
   work("start_node_pxe_off") do |res, node, action|
     node[:node_mac] = node[:node_mac].downcase.gsub(/:/, '-')
-    symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac]}"
+    symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac].strip}"
     if File.exists?(symlink_name)
       File.delete(symlink_name)
     end
     if action == "reset"
-      debug "Start_node_pxe_off RESET: http://#{node[:node_cm_ip].to_s}/reset"
+      debug "Start_node_pxe_off RESET: http://#{node[:node_cm_ip].to_s.strip}/reset"
       begin
-        open("http://#{node[:node_cm_ip].to_s}/reset")
+        open("http://#{node[:node_cm_ip].to_s.strip}/reset")
       rescue
         res.inform(:error, {
           event_type: "HTTP",
           exit_code: "-1",
           node_name: "#{node[:node_name].to_s}",
-          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
         }, :ALL)
         next
       end
@@ -390,15 +392,15 @@ module OmfRc::ResourceProxy::CM
         }, :ALL)
       end
     elsif action == "shutdown"
-      debug "Start_node_pxe_off SHUTDOWN: http://#{node[:node_cm_ip].to_s}/off"
+      debug "Start_node_pxe_off SHUTDOWN: http://#{node[:node_cm_ip].to_s.strip}/off"
       begin
-        open("http://#{node[:node_cm_ip].to_s}/off")
+        open("http://#{node[:node_cm_ip].to_s.strip}/off")
       rescue
         res.inform(:error, {
           event_type: "HTTP",
           exit_code: "-1",
           node_name: "#{node[:node_name].to_s}",
-          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s}."
+          msg: "failed to reach cm, ip: #{node[:node_cm_ip].to_s.strip}."
         }, :ALL)
         next
       end
@@ -465,13 +467,13 @@ module OmfRc::ResourceProxy::CM
 
   #this is used by other methods in this scope
   work("get_status") do |res, node|
-    debug "http://#{node[:node_cm_ip].to_s}/state"
-    resp = open("http://#{node[:node_cm_ip].to_s}/state")
+    debug "http://#{node[:node_cm_ip].to_s.strip}/state"
+    resp = open("http://#{node[:node_cm_ip].to_s.strip}/state")
     resp = res.parse_responce(resp, "//Response//line//value")
     debug "state response: #{resp}"
 
     if resp == 'on'
-      symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac]}"
+      symlink_name = "/tftpboot/pxelinux.cfg/01-#{node[:node_mac].strip}"
       if File.exists?("#{symlink_name}")
         :on_pxe
       else
