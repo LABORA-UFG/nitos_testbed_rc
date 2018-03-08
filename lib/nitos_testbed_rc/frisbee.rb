@@ -63,10 +63,10 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
       
       output = ''
       retry_flag = 0
-      host = Net::Telnet.new("Host" => client.property.multicast_interface.to_s, "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
+      host = Net::Telnet.new("Host" => client.property.multicast_interface.to_s, "Waittime" => 10 , "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
       while retry_flag < 2
         host.cmd(command.to_s) do |c|
-          puts "$ #{c}"
+          debug "Executing command #{command} on host #{client.property.multicast_interface.to_s}. Attempt #{retry_flag}"
           if c[0,8] ==  "Progress"
             c = c.split[1]
             client.inform(:status, {
@@ -91,6 +91,7 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
             }, :ALL)
           end
         end
+        dubug output
         break if output != ''
         retry_flag += 1
       end

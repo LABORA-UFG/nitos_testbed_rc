@@ -97,11 +97,13 @@ def create_frisbee(comm, fcontroller, cm_controller, node, port, options, progre
 #               end
             elsif client_msg.read_property("event") == "STDOUT"
               @load_complete[client_msg.read_property("node")] = client_msg.read_property("msg").sub('%', '').to_i
+              puts "Percentage by node: #{@load_complete}"
               overall = @load_complete.values.inject(:+)
               progress_bar.count = ( overall / @nodes_up_pxe.length)
               progress_bar.write
             elsif client_msg.read_property("event") == "EXIT"
               @load_complete[client_msg.read_property("node")] = 100
+              puts "Percentage by node: #{@load_complete}"
               overall = @load_complete.values.inject(:+)
               progress_bar.count = ( overall / @nodes_up_pxe.length) 
               progress_bar.write
