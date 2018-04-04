@@ -45,6 +45,9 @@ class CmPDP
 
   def authorize(msg, &block)
     debug "AUTH message received: #{msg.operation}"
+
+    msg.properties = Hashie::Mash.new(msg.properties) if msg.properties.is_a? Hash
+
     if msg.operation.to_sym == :configure
       acc = _get_account_name(msg)
 
