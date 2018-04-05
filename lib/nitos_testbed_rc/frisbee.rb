@@ -33,10 +33,10 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
       debug "Received message '#{client.opts.inspect}'"
       if error_msg = client.opts.error_msg
         client.inform(:error,{
-          event_type: "AUTH",
-          exit_code: "-1",
-          node_name: client.property.node_topic,
-          msg: error_msg
+            event_type: "AUTH",
+            exit_code: "-1",
+            node_name: client.property.node_topic,
+            msg: error_msg
         }, :ALL)
         next
       end
@@ -59,22 +59,25 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
       client.property.app_id = client.hrn.nil? ? client.uid : client.hrn
 
       command = "#{client.property.binary_path} -i #{client.property.multicast_interface} -m #{client.property.multicast_address} -p #{client.property.port} #{client.property.hardrive}"
+      #command = "killall frisbee && #{client.property.binary_path} -i #{client.property.multicast_interface} -m #{client.property.multicast_address} -p #{client.property.port} #{client.property.hardrive}"
       debug "Executing command #{command} on host #{client.property.multicast_interface.to_s}"
-      
+
       output = ''
       retry_flag = 0
-      host = Net::Telnet.new("Host" => client.property.multicast_interface.to_s, "Waittime" => 10 , "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
+      host = Net::Telnet.new("Host" => client.property.multicast_interface.to_s, "Waittime" => 10, "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
+      #host = Net::Telnet.new("Host" => client.property.multicast_interface.to_s, "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
       while retry_flag < 2
+        debug "TRYING TIME #{retry_flag} - #{client.property.multicast_interface}\n"
         host.cmd(command.to_s) do |c|
-          debug "Executing command #{command} on host #{client.property.multicast_interface.to_s}. Attempt #{retry_flag}"
+          debug "FRISBEE OUTPUT: $ #{client.property.multicast_interface} = #{c}\n"
           if c[0,8] ==  "Progress"
             c = c.split[1]
             client.inform(:status, {
-              status_type: 'FRISBEE',
-              event: "STDOUT",
-              app: client.property.app_id,
-              node: client.property.node_topic,
-              msg: "#{c.to_s}"
+                status_type: 'FRISBEE',
+                event: "STDOUT",
+                app: client.property.app_id,
+                node: client.property.node_topic,
+                msg: "#{c.to_s}"
             }, :ALL)
           elsif c[0,5] == "Wrote"
             c = c.split("\n")
@@ -84,24 +87,24 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
             output = "#{c[1]}\n#{c.last}"
           elsif c.strip == "Short write!"
             client.inform(:error,{
-              event_type: "ERROR",
-              exit_code: "-1",
-              node_name: client.property.node_topic,
-              msg: "Load ended with 'Short write' error msg!"
+                event_type: "ERROR",
+                exit_code: "-1",
+                node_name: client.property.node_topic,
+                msg: "Load ended with 'Short write' error msg!"
             }, :ALL)
           end
         end
-        dubug output
+        puts "OUTPUT AFTER ALL - #{client.property.multicast_interface} = #{output}\n"
         break if output != ''
         retry_flag += 1
       end
 
       client.inform(:status, {
-        status_type: 'FRISBEE',
-        event: "EXIT",
-        app: client.property.app_id,
-        node: client.property.node_topic,
-        msg: output
+          status_type: 'FRISBEE',
+          event: "EXIT",
+          app: client.property.app_id,
+          node: client.property.node_topic,
+          msg: output
       }, :ALL)
       host.close
     end
@@ -113,10 +116,10 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
     sleep 1
     if error_msg = client.opts.error_msg
       client.inform(:error,{
-        event_type: "AUTH",
-        exit_code: "-1",
-        node_name: client.property.node_topic,
-        msg: error_msg
+          event_type: "AUTH",
+          exit_code: "-1",
+          node_name: client.property.node_topic,
+          msg: error_msg
       }, :ALL)
       next
     end
@@ -127,18 +130,18 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
 
     command = "#{client.property.binary_path} -i #{client.property.multicast_interface} -m #{client.property.multicast_address} -p #{client.property.port} #{client.property.hardrive}"
     debug "Executing command #{command} on host #{client.property.multicast_interface}"
-    
+
     output = ''
     host = Net::Telnet.new("Host" => client.property.multicast_interface, "Timeout" => 200, "Prompt" => /[\w().-]*[\$#>:.]\s?(?:\(enable\))?\s*$/)
     host.cmd(command.to_s) do |c|
       if c[0,8] ==  "Progress"
         c = c.split[1]
         client.inform(:status, {
-          status_type: 'FRISBEE',
-          event: "STDOUT",
-          app: client.property.app_id,
-          node: client.property.node_topic,
-          msg: "#{c.to_s}"
+            status_type: 'FRISBEE',
+            event: "STDOUT",
+            app: client.property.app_id,
+            node: client.property.node_topic,
+            msg: "#{c.to_s}"
         }, :ALL)
       elsif c[0,5] == "Wrote"
         c = c.split("\n")
@@ -148,20 +151,20 @@ module OmfRc::ResourceProxy::Frisbee #frisbee client
         output = "#{c[1]}\n#{c.last}"
       elsif c.strip == "Short write!"
         client.inform(:error,{
-          event_type: "ERROR",
-          exit_code: "-1",
-          node_name: client.property.node_topic,
-          msg: "Load ended with 'Short write' error msg!"
+            event_type: "ERROR",
+            exit_code: "-1",
+            node_name: client.property.node_topic,
+            msg: "Load ended with 'Short write' error msg!"
         }, :ALL)
       end
     end
 
     client.inform(:status, {
-      status_type: 'FRISBEE',
-      event: "EXIT",
-      app: client.property.app_id,
-      node: client.property.node_topic,
-      msg: output
+        status_type: 'FRISBEE',
+        event: "EXIT",
+        app: client.property.app_id,
+        node: client.property.node_topic,
+        msg: output
     }, :ALL)
     host.close
   end
