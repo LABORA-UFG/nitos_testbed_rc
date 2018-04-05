@@ -8,7 +8,7 @@
 
 die() { echo "ERROR: $@" 1>&2 ; exit 1; }
 
-RUBY_VER="2.3.1p112"
+RUBY_VER="2.3.2p217"
 RUBY_BIN_SUFFIX=""
 
 if [ `id -u` != "0" ]; then
@@ -26,9 +26,9 @@ if [ -e /etc/profile.d/rvm.sh ]; then
     # if [[ $? != 0 ]] ; then
     #     die "$RUBY_VER with gemset 'omf' is not installed in your RVM"
     # fi
-    ruby -v | grep 2.3.1  > /dev/null
+    ruby -v | grep 2.3.2  > /dev/null
     if [[ $? != 0 ]] ; then
-        die "Could not run Ruby 2.3.1"
+        die "Could not run Ruby 2.3.2"
     fi
     gem list | grep nitos_testbed_rc  > /dev/null
     if [[ $? != 0 ]] ; then
@@ -37,11 +37,11 @@ if [ -e /etc/profile.d/rvm.sh ]; then
 else
     # check for distro ruby when no RVM was found
     echo "No system-wide RVM installation detected"
-    ruby -v | grep 2.3.1  > /dev/null
+    ruby -v | grep 2.3.2  > /dev/null
     if [[ $? != 0 ]] ; then
-        ruby2.3.1 -v | grep 2.3.1  > /dev/null
+        ruby2.3.1 -v | grep 2.3.2  > /dev/null
         if [[ $? != 0 ]] ; then
-            die "Could not run system Ruby 2.3.1. No useable Ruby installation found."
+            die "Could not run system Ruby 2.3.2. No useable Ruby installation found."
         fi
         RUBY_BIN_SUFFIX="2.3.1"
     fi

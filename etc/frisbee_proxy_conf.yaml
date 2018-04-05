@@ -9,6 +9,7 @@
   :root_cert_dir: ~/.omf/trusted_roots
   :entity_cert: ~/.omf/frisbee_factory.pem
   :entity_key: ~/.omf/frisbee_factory.pkey
+  :ch_key: /root/.omf/omf_control.chkey
 
 # URL for the rest interface of the broker
 :broker_url: https://localhost:8001
