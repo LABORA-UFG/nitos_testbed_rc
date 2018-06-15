@@ -59,13 +59,28 @@ end
 puts "Copying initialization script 'run_ntrc.sh'."
 FileUtils.cp "#{gem_root}/init/run_ntrc.sh", "/usr/local/bin/run_ntrc.sh"
 
-FileUtils.cp "#{gem_root}/init/ntrc.conf", "/etc/init/ntrc.conf"
-FileUtils.cp "#{gem_root}/init/ntrc_user.conf", "/etc/init/ntrc_user.conf"
-FileUtils.cp "#{gem_root}/init/ntrc_frisbee.conf", "/etc/init/ntrc_frisbee.conf"
-FileUtils.cp "#{gem_root}/init/ntrc_cm.conf", "/etc/init/ntrc_cm.conf"
+#FileUtils.cp "#{gem_root}/init/ntrc.conf", "/etc/init/ntrc.conf"
+#FileUtils.cp "#{gem_root}/init/ntrc_user.conf", "/etc/init/ntrc_user.conf"
+#FileUtils.cp "#{gem_root}/init/ntrc_frisbee.conf", "/etc/init/ntrc_frisbee.conf"
+#FileUtils.cp "#{gem_root}/init/ntrc_cm.conf", "/etc/init/ntrc_cm.conf"
+
+FileUtils.cp "#{gem_root}/init/ntrc.service", "/etc/systemd/system/ntrc.service"
+FileUtils.cp "#{gem_root}/init/ntrc_user.service", "/etc/systemd/system/ntrc_user.service"
+FileUtils.cp "#{gem_root}/init/ntrc_frisbee.service", "/etc/systemd/system/ntrc_frisbee.service"
+FileUtils.cp "#{gem_root}/init/ntrc_cm.service", "/etc/systemd/system/ntrc_cm.service"
+FileUtils.chmod 0644, "/etc/systemd/system/ntrc.service"
+FileUtils.chmod 0644, "/etc/systemd/system/ntrc_user.service"
+FileUtils.chmod 0644, "/etc/systemd/system/ntrc_frisbee.service"
+FileUtils.chmod 0644, "/etc/systemd/system/ntrc_cm.service"
+`systemctl daemon-reload` if File.exist?("/bin/systemctl")
+`systemctl enable ntrc.service` if File.exist?("/bin/systemctl")
+`systemctl enable ntrc_user.service` if File.exist?("/bin/systemctl")
+`systemctl enable ntrc_frisbee.service` if File.exist?("/bin/systemctl")
+`systemctl enable ntrc_cm.service` if File.exist?("/bin/systemctl")
+
 puts "Upstart scripts has been installed."
-puts "Execute 'start ntrc' to run all the proxies."
-puts "Execute 'start ntrc_frisbee' to run frisbee proxy."
-puts "Execute 'start ntrc_user' to run user proxy."
-puts "Execute 'start ntrc_cm' to run cm proxy."
+puts "Execute 'service ntrc' to run all proxies."
+puts "Execute 'service ntrc_frisbee' to run frisbee proxy."
+puts "Execute 'service ntrc_user' to run user proxy."
+puts "Execute 'service ntrc_cm' to run cm proxy."
 puts "done."

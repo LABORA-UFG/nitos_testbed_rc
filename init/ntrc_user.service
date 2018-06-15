@@ -1,0 +1,14 @@
+[Unit]
+Description=NITOS proxy for user controller of NITOS Testbed resource controllers pack
+After=syslog.target
+After=ntrc.service
+
+[Service]
+Type=forking
+PIDFile=/var/run/ntrc_user.pid
+ExecStartPre=/bin/rm -f /var/run/ntrc_user.pid
+ExecStart=/usr/local/bin/run_ntrc.sh 1 2>&1
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

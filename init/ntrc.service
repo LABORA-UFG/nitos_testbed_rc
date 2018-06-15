@@ -1,0 +1,9 @@
+[Unit]
+Description=NITOS proxies
+After=syslog.target
+
+[Service]
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

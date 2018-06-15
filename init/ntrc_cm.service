@@ -1,0 +1,14 @@
+[Unit]
+Description=NITOS proxy for cm controller of NITOS Testbed resource controllers pack
+After=syslog.target
+After=ntrc.service
+
+[Service]
+Type=forking
+PIDFile=/var/run/ntrc_cm.pid
+ExecStartPre=/bin/rm -f /var/run/ntrc_cm.pid
+ExecStart=/usr/local/bin/run_ntrc.sh 3 2>&1
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
