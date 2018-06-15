@@ -79,8 +79,8 @@ FileUtils.chmod 0644, "/etc/systemd/system/ntrc_cm.service"
 `systemctl enable ntrc_cm.service` if File.exist?("/bin/systemctl")
 
 puts "Upstart scripts has been installed."
-puts "Execute 'service ntrc' to run all proxies."
-puts "Execute 'service ntrc_frisbee' to run frisbee proxy."
-puts "Execute 'service ntrc_user' to run user proxy."
-puts "Execute 'service ntrc_cm' to run cm proxy."
+puts "Execute 'systemctl start ntrc.service' to run all proxies."
+puts "Execute 'systemctl start ntrc_frisbee.service' to run frisbee proxy."
+puts "Execute 'systemctl start ntrc_user.service' to run user proxy."
+puts "Execute 'systemctl start ntrc_cm.service' to run cm proxy."
 puts "done."

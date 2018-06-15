@@ -1,6 +1,5 @@
 [Unit]
 Description=NITOS proxy for frisbee controller of NITOS Testbed resource controllers pack
-After=syslog.target
 After=ntrc.service
 
 [Service]
