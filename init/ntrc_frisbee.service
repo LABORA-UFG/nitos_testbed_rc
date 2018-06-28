@@ -3,7 +3,7 @@ Description=NITOS proxy for frisbee controller of NITOS Testbed resource control
 After=ntrc.service
 
 [Service]
-Type=forking
+Type=simple
 PIDFile=/var/run/ntrc_frisbee.pid
 ExecStartPre=/bin/rm -f /var/run/ntrc_frisbee.pid
 ExecStart=/bin/sh -c '/usr/local/bin/run_ntrc.sh 2 2>&1'

@@ -3,7 +3,7 @@ Description=NITOS proxy for user controller of NITOS Testbed resource controller
 After=ntrc.service
 
 [Service]
-Type=forking
+Type=simple
 PIDFile=/var/run/ntrc_user.pid
 ExecStartPre=/bin/rm -f /var/run/ntrc_user.pid
 ExecStart=/bin/sh -c '/usr/local/bin/run_ntrc.sh 1 2>&1'
