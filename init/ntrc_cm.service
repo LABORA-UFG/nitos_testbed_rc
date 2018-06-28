@@ -6,7 +6,7 @@ After=ntrc.service
 Type=forking
 PIDFile=/var/run/ntrc_cm.pid
 ExecStartPre=/bin/rm -f /var/run/ntrc_cm.pid
-ExecStart=/usr/local/bin/run_ntrc.sh 3 2>&1
+ExecStart=/bin/sh -c '/usr/local/bin/run_ntrc.sh 3 2>&1'
 Restart=on-abort
 
 [Install]
